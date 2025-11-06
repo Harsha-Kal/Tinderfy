@@ -27,7 +27,7 @@ CREATE TABLE user_preferences(
     user_id INTEGER PRIMARY KEY NOT NULL,
     min_age INTEGER,
     max_age INTEGER,
-    preferred_gender VARCHAR(20),
+    preferred_gender VARCHAR(20)
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
