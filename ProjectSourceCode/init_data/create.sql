@@ -15,11 +15,11 @@ CREATE TABLE songs(
     spotify_id VARCHAR(255),
     title VARCHAR(255) NOT NULL,
     artist VARCHAR(255) NOT NULL,
-    acousticness DECIMAL(6,5),
-    danceability DECIMAL(6,5),
-    energy DECIMAL(6,5),
-    instrumentalness DECIMAL(6,5),
-    valence DECIMAL(6,5),
+    acousticness INTEGER,
+    danceability INTEGER,
+    energy INTEGER,
+    instrumentalness INTEGER,
+    happiness INTEGER,
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
