@@ -2,6 +2,7 @@ CREATE TABLE users(
     id SERIAL PRIMARY KEY NOT NULL,
     username VARCHAR(50) NOT NULL,
     password VARCHAR(60) NOT NULL,
+    name VARCHAR(50) NOT NULL,
     email VARCHAR(100) NOT NULL,
     age INTEGER CHECK NOT NULL,
     gender VARCHAR(20) NOT NULL,
@@ -11,7 +12,7 @@ CREATE TABLE users(
 CREATE TABLE songs(
     id SERIAL PRIMARY KEY NOT NULL,
     user_id INTEGER NOT NULL,
-    spotify_id VARCHAR(255) NOT NULL,
+    spotify_id VARCHAR(255),
     title VARCHAR(255) NOT NULL,
     artist VARCHAR(255) NOT NULL,
     acousticness DECIMAL(6,5),
@@ -36,4 +37,4 @@ CREATE TABLE matches(
     user2_id INTEGER NOT NULL,
     FOREIGN KEY (user1_id) REFERENCES users(id),
     FOREIGN KEY (user2_id) REFERENCES users(id)
-)
+);
