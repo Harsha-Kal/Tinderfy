@@ -1,4 +1,5 @@
 const express = require('express'); // To build an application server or API
+const axios = require('axios');
 const app = express(); //creates express instance
 const handlebars = require('express-handlebars'); 
 const Handlebars = require('handlebars'); //imports handlebar library
@@ -33,3 +34,24 @@ app.post("/register", async (req, res) => {
         //res.render(register page with error);
     }
 });
+
+//function to run rapidAPI endpoint to get track features
+const RAPIDAPI_HOST = 'track-analysis.p.rapidapi.com';
+async function getTrackFeatures(song, artist){
+  try{
+    const response = await axios.get('https://track-analysis.p.rapidapi.com/pktx/analysis', {
+      params: {
+        song: song,
+        artist: artist
+      },
+      headers: {
+        'x-rapidapi-key': process.env.API_KEY,
+        'x-rapidapi-host': RAPIDAPI_HOST
+      }
+    });
+    return response.data;
+  }catch(error){
+    console.error(`Error fetching analysis for ${song} by ${artist}:`, error.message);
+    return null;
+  }
+}
