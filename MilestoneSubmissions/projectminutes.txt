@@ -1,0 +1,4 @@
+* In the future meetings will be graded on the functionality of the main branch code as well as each individuals contributions
+* Additionally the ta will look at the project board and to do list
+* by next week we need functionality with the register and login pages working with the server
+* Main branch should be demoable
