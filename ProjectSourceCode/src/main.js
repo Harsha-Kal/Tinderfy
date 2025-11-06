@@ -8,6 +8,7 @@ const pgp = require('pg-promise')(); // To connect to the Postgres DB from the n
 const bodyParser = require('body-parser');
 const session = require('express-session'); // To set the session object. To store or access session data, use the `req.session`, which is (generally) serialized as JSON by the store.
 const bcrypt = require('bcryptjs');
+module.exports = app.listen(3000);
 
 app.get("/", (req, res) => {
     //res.render('file');
@@ -33,6 +34,11 @@ app.post("/register", async (req, res) => {
         console.log(err);
         //res.render(register page with error);
     }
+});
+
+//Lab 10 Dummy Endpoint
+app.get('/welcome', (req, res) => {
+  res.json({status: 'success', message: 'Welcome!'});
 });
 
 //function to run rapidAPI endpoint to get track features

@@ -1,0 +1,40 @@
+Team Number: 
+    12-6
+Team Name: Team TinderfyTM
+Team Members: Name, github, email
+    Amit Wieder, awieder, wiederamit@gmail.com
+    Sree Harsha Kalavagunta, Harsha-Kal, sreeharshakalavagunta@gmail.com
+    Nithin Manoj, Nithin-Manoj, nithinmanoj2006@gmail.com
+    Riley Polchin rileyPo, rileypolchin@gmail.com
+    Max Jambor, maxjambor, maxcjambor@gmail.com
+
+Application Name:
+    TinderfyTM
+
+Application Description:
+    This app would be a dating app with a similar UI other common dating apps on the market. The Yes and No 
+feature (swipe left and right usually) common on other dating apps would be present in the UI. However, the
+key difference between those apps and ours is the emphasis on matchmaking based on music taste. We think music
+taste is a huge indicator of how compatible two people are. 
+    In the app, users would choose their 10 favorite songs as well as fill out the rest of their profile. After their 
+profile is complete, users with similar song choices would be recommended. A similarity score for songs would be displayed 
+as well to help inform users whether to click yes or no on someone else. If two users click yes on each other they match.  
+
+Audience:
+    Our target audience would be college students and other adults who care about their music taste and our looking for partners. Usually,
+when meeting someone knew, music comes up anyway, so our app aims to match people who can share and connect over songs. We would try and 
+make our UI as intuitive as possible with general web design practices to increase usability and accessibility.
+
+Vision Statement:
+    To connect people and form long lasting relationships.
+
+Communication Plan:
+We will mostly rely on Slack for communication, making different groups for different features to improve communication and efficiency.
+
+EXTRA CREDIT:
+Risk 1: Passwords being leaked. In order to mitigate this risk we will hash the passwords in the database so that if our database is leaked, nobodies passwords will be revealed.
+Risk 2: Catfishing. While there is no real way to mitigate catfishing completlety, users will have to submit a photo of themselves. Additonally since the app is mainly based around
+music taste, catfishing will not be as prevelent as in other dating apps.
+Risk 3: Harrassment. We will mitigate the risk of potential Harrassment by letting people report/block each other
+Risk 4: Confusing user experience. Many applications risk being unintuitive or confusing. We will mitigate this by leaving our UI simple with obvious functions\
+Risk 5: Bot users. We can mitigate an influx of bots by adding some form of captcha.
