@@ -1,0 +1,6 @@
+1. Created a Register Page with bootstrap styling and form validation 11/4
+2. Created a Login Page with bootstrap styling and form validation 11/5
+3. Created Home Page with buttons for register and Login
+4. Created Database with user table and some insertion testing 11/3
+5. Started creating http request paths for register and login to work with the Database 11/4
+6. Tested API functionality 11/4
