@@ -115,6 +115,34 @@ async function getTrackFeatures(song, artist){
   }
 }
 
+async function processSongById(songID){
+  try{
+    const song = await db.oneOrNone('SELECT id, title, artist FROM songs WHERE id = $1', [songId]);
+    if(!song){
+      console.error('Song not found');
+    }
+
+    const analysis = await getTrackFeatures(song.title, song.artist);
+    if(!analysis || analysis.acousticness == undefined){
+      console.error('Could not get track features from API');
+    }
+
+    await db.none('UPDATE songs SET acousticness = $1, danceability = $2, energy = $3, instrumentalness = $4, valence = $5 WHERE id = $6', 
+      [
+        analysis.acousticness,
+        analysis.danceability,
+        analysis.energy,
+        analysis.instrumentalness,
+        analysis.valence,
+        song.id
+      ]
+      );
+    return;
+  }catch(error){
+    console.error('Error processing song:', error);
+  }
+}
+
 // Start the server
 const PORT = 3000;
 const HOST = '0.0.0.0'; // Bind to all interfaces so it's accessible from outside the container
