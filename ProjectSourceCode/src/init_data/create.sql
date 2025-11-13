@@ -1,11 +1,11 @@
 CREATE TABLE users(
     id SERIAL PRIMARY KEY NOT NULL,
-    username VARCHAR(50) NOT NULL,
+    username VARCHAR(50) UNIQUE NOT NULL,
     password VARCHAR(60) NOT NULL,
-    name VARCHAR(50) NOT NULL,
-    email VARCHAR(100) NOT NULL,
-    age INTEGER NOT NULL,
-    gender VARCHAR(20) NOT NULL,
+    name VARCHAR(50),
+    email VARCHAR(100),
+    age INTEGER,
+    gender VARCHAR(20),
     profile_picture_url VARCHAR(255)
 );
 
