@@ -1,12 +1,17 @@
 CREATE TABLE users(
     id SERIAL PRIMARY KEY NOT NULL,
-    username VARCHAR(50) NOT NULL,
+    username VARCHAR(50) UNIQUE NOT NULL,
     password VARCHAR(60) NOT NULL,
-    name VARCHAR(50) NOT NULL,
-    email VARCHAR(100) NOT NULL,
-    age INTEGER NOT NULL,
-    gender VARCHAR(20) NOT NULL,
-    profile_picture_url VARCHAR(255)
+    name VARCHAR(50),
+    email VARCHAR(100),
+    age INTEGER,
+    gender VARCHAR(20),
+    profile_picture_url VARCHAR(255),
+    average_song_acousticness INTEGER,
+    average_song_danceability INTEGER,
+    average_song_energy INTEGER,
+    average_song_instrumentalness INTEGER,
+    average_song_happiness INTEGER
 );
 
 CREATE TABLE songs(

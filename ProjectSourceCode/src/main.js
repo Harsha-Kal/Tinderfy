@@ -115,6 +115,7 @@ async function getTrackFeatures(song, artist){
   }
 }
 
+//Function to extract track feaures from API per song
 async function processSongById(songId){
   try{
     const song = await db.oneOrNone('SELECT id, title, artist FROM songs WHERE id = $1', [songId]);
@@ -123,7 +124,7 @@ async function processSongById(songId){
     }
 
     const analysis = await getTrackFeatures(song.title, song.artist);
-    if(!analysis || analysis.acousticness == undefined){
+    if(analysis.acousticness == null){
       console.error('Could not get track features from API');
     }
 
@@ -140,6 +141,74 @@ async function processSongById(songId){
     return;
   }catch(error){
     console.error('Error processing song:', error);
+  }
+}
+
+//function to process all user songs and update user db
+async function processUserSongs(userId){
+  try{
+    const songs = await db.any('SELECT id, title, artist, acousticness, danceability, energy, instrumentalness, happiness FROM songs WHERE user_id = $1', [userId]);
+    if(songs.length == 0){
+      console.error('No songs found from user');
+    }
+    for(const song of songs){
+      if(song.acousticness == null || song.acousticness == undefined){
+        const analysis = await getTrackFeatures(song.title, song.artist);
+        if(analysis.acousticness !== null && analysis.acousticness !== undefined){
+          await db.none('UPDATE songs SET acousticness = $1, danceability = $2, energy = $3, instrumentalness = $4, happiness = $5 WHERE id = $6', 
+            [
+              analysis.acousticness,
+              analysis.danceability,
+              analysis.energy,
+              analysis.instrumentalness,
+              analysis.happiness,
+              song.id
+            ]
+          );
+        }else{
+          console.error(`Failed to get anaylsis for ${song.title}`);
+        }
+        await new Promise(resolve => setTimeout(resolve, 5000));
+      }
+    }
+    const updatedSongs = await db.any('SELECT acousticness, danceability, instrumentalness, happiness FROM songs WHERE user_id = $1 AND acousticness IS NOT NULL', [userId]);
+    if(updatedSongs.length == 0){
+      console.error(`No songs with analysis data from user: ${userId}`);
+    }
+    let average_song_acousticness = 0;
+    let average_song_danceability = 0;
+    let average_song_energy = 0;
+    let average_song_instrumentalness = 0;
+    let average_song_happiness = 0;
+    const count = updatedSongs.length;
+    for(const song of updatedSongs){
+      average_song_acousticness += song.acousticness;
+      average_song_danceability += song.danceability;
+      average_song_energy += song.energy;
+      average_song_instrumentalness += song.instrumentalness;
+      average_song_happiness += song.happiness;
+    }
+    const averages = {
+      acousticness: Math.round(average_song_acousticness/count),
+      danceability: Math.round(average_song_danceability/count),
+      energy: Math.round(average_song_energy/count),
+      instrumentalness: Math.round(average_song_instrumentalness/count),
+      happiness: Math.round(average_song_happiness/count)
+    };
+
+    await db.none('UPDATE users SET average_song_acousticness = $1, average_song_danceability = $2, average_song_energy = $3, average_song_instrumentalness = $4, average_song_happiness = $5 WHERE id = $6',
+      [
+        averages.acousticness,
+        averages.danceability,
+        averages.energy,
+        averages.instrumentalness,
+        averages.happiness,
+        userId
+      ]
+    );
+    console.log(`Added feature averages to user: ${userId}`);
+  }catch(error){
+    console.error(`Error processing user ${userId} songs`, error.message);
   }
 }
 
@@ -161,17 +230,36 @@ app.get('/api/songs', async (req, res) => {
   }
 });
 
+app.get('/api/users', async (req, res) => {
+  try {
+    const users = await db.any('SELECT * FROM users ORDER BY id');
+    res.json({
+      success: true,
+      count: users.length,
+      users: users
+    });
+  } catch (error) {
+    console.error('Error fetching songs:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+});
+
 // Start the server
 const PORT = 3000;
 const HOST = '0.0.0.0'; // Bind to all interfaces so it's accessible from outside the container
 const server = app.listen(PORT, HOST, async () => {
   console.log(`Server is running on http://${HOST}:${PORT}`);
 
+  /*
   try{
-    await processSongById(1);
+    await processUserSongs(1);
   }catch(error){
     console.error('failed to process song:', error.message);
   }
+  */
 
 });
 
