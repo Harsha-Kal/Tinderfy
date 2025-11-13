@@ -51,7 +51,7 @@ describe('Testing Register API', () => {
       .post('/register')
       .send(registrationPayload)
       .end((err, res) => {
-        expect(res).to.have.status(200);
+        expect(res).to.have.status(400);
         expect(res.text).to.include('Username already exists');
         done();
       });

@@ -1,7 +1,7 @@
 const express = require('express'); // To build an application server or API
 const axios = require('axios');
 const app = express(); //creates express instance
-const handlebars = require('express-handlebars'); 
+const handlebars = require('express-handlebars');
 const Handlebars = require('handlebars'); //imports handlebar library
 const path = require('path');
 const pgp = require('pg-promise')(); // To connect to the Postgres DB from the node server
@@ -64,40 +64,74 @@ app.use(
 
 
 app.get("/", (req, res) => {
-    res.render('pages/home');
+  res.render('pages/home');
 });
 app.get("/login", (req, res) => {
-    res.render('pages/login');
+  res.render('pages/login');
 });
 app.get("/register", (req, res) => {
-    res.render('pages/register');
+  res.render('pages/register');
 });
 app.post("/register", async (req, res) => {
-    const username = req.body.username;
-    const password = req.body.password;
-    const hash = await bcrypt.hash(req.body.password, 10);
-    const query = 'INSERT INTO users (username, password) VALUES ($1, $2) RETURNING *';
-    try{
-        const insertedUser = await db.one(query, [username, hash])
-        console.log(insertedUser);
-        res.redirect('/login');
-    }
-    catch(err){
-        const error = true;
-        console.log(err);
-        res.render('pages/register', {message: "Username already exists", error: true});
-    }
+  const username = req.body.username;
+  const password = req.body.password;
+  const hash = await bcrypt.hash(req.body.password, 10);
+  const query = 'INSERT INTO users (username, password) VALUES ($1, $2) RETURNING *';
+  try {
+    const insertedUser = await db.one(query, [username, hash])
+    console.log(insertedUser);
+    res.redirect('/login');
+  }
+  catch (err) {
+    const error = true;
+    console.log(err);
+    res.status(400).render('pages/register', { message: "Username already exists", error: true });
+  }
 });
+
+//Route for account customization
+app.get("/account-custom", (req, res) => {
+  res.render("pages/account-custom");
+});
+
+app.post("/account-custom", async (req, res) => {
+  const { username, password, name, email, age, gender } = req.body;
+  // const name = req.name;
+  // const username = req.username;
+  // const password = req.password;
+  // const email = req.email;
+  // const age = req.age;
+  // const gender = req.gender;
+  const hash = await bcrypt.hash(password, 10);
+  const query = `
+    INSERT INTO users (username, password, name, email, age, gender)
+    VALUES ($1, $2, $3, $4, $5, $6)
+    RETURNING *;
+  `;
+  try {
+    const insertedUser = await db.one(query, [username, hash, name, email, age, gender]);
+    console.log(insertedUser);
+    res.render('pages/account-custom');
+  }
+  catch (err) {
+    const error = true;
+    console.log(err);
+    res.render('pages/account-custom', { message: "Error creating profile.", error: true });
+  }
+});
+
+
+
 
 //Lab 10 Dummy Endpoint
 app.get('/welcome', (req, res) => {
-  res.json({status: 'success', message: 'Welcome!'});
+  res.json({ status: 'success', message: 'Welcome!' });
 });
 
 //function to run rapidAPI endpoint to get track features
 const RAPIDAPI_HOST = 'track-analysis.p.rapidapi.com';
-async function getTrackFeatures(song, artist){
-  try{
+async function getTrackFeatures(song, artist) {
+  try {
     const response = await axios.get('https://track-analysis.p.rapidapi.com/pktx/analysis', {
       params: {
         song: song,
@@ -109,7 +143,7 @@ async function getTrackFeatures(song, artist){
       }
     });
     return response.data;
-  }catch(error){
+  } catch (error) {
     console.error(`Error fetching analysis for ${song} by ${artist}:`, error.message);
     return null;
   }

@@ -1,0 +1,6 @@
+1. Added account customization page
+2. Converted our frontend layouts to handlebars partials
+3. Wrote account customization api routes
+4. Fixed register api routes
+5. Added positive and negative tests for register api route
+6. Passed all tests

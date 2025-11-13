@@ -1,5 +1,5 @@
 {
-    "name": "Tinderfy",
+    "name": "tinderfy",
     "main": "ProjectSourceCode/src/main.js",
     "dependencies": {
       "express": "^4.6.1",
