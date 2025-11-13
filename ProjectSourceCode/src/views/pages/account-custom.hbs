@@ -1,0 +1,55 @@
+<div class="container mt-5">
+  <div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <h3 class="mb-4 text-center">Account Customization</h3>
+          <form action="/account-custom" method="POST">
+
+            <div class="form-group mb-3">
+              <label for="username">Username</label>
+              <input type="text" class="form-control" name="username" id="username" placeholder="Enter your username"
+                required>
+            </div>
+
+            <div class="form-group mb-3">
+              <label for="password">Password</label>
+              <input type="password" class="form-control" name="password" id="password"
+                placeholder="Enter a new password" required>
+            </div>
+
+            <div class="form-group mb-3">
+              <label for="name">Name</label>
+              <input type="text" class="form-control" name="name" id="name" placeholder="Enter your name" required>
+            </div>
+
+            <div class="form-group mb-3">
+              <label for="email">Email</label>
+              <input type="email" class="form-control" name="email" id="email" placeholder="Enter your email" required>
+            </div>
+
+            <div class="form-group mb-3">
+              <label for="age">Age</label>
+              <input type="number" class="form-control" name="age" id="age" placeholder="Enter your age">
+            </div>
+
+            <div class="form-group mb-4">
+              <label for="gender">Gender</label>
+              <select class="form-select" name="gender" id="gender">
+                <option value="">Select gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <div class="text-center">
+              <button type="submit" class="btn btn-success btn-lg">Save Changes</button>
+            </div>
+
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
