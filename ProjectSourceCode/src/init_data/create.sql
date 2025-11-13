@@ -6,7 +6,12 @@ CREATE TABLE users(
     email VARCHAR(100),
     age INTEGER,
     gender VARCHAR(20),
-    profile_picture_url VARCHAR(255)
+    profile_picture_url VARCHAR(255),
+    average_song_acousticness INTEGER,
+    average_song_danceability INTEGER,
+    average_song_energy INTEGER,
+    average_song_instrumentalness INTEGER,
+    average_song_happiness INTEGER
 );
 
 CREATE TABLE songs(
