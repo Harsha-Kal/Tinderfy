@@ -1,19 +1,18 @@
 // ********************** Initialize server **********************************
 
-const server = require('../ProjectSourceCode/src/main'); //TODO: Make sure the path to your index.js is correctly added
+const server = require('../ProjectSourceCode/src/main');
 
 // ********************** Import Libraries ***********************************
 
-const chai = require('chai'); // Chai HTTP provides an interface for live integration testing of the API's.
+const chai = require('chai');
 const chaiHttp = require('chai-http');
 chai.should();
 chai.use(chaiHttp);
-const {assert, expect} = chai;
+const { assert, expect } = chai;
 
 // ********************** DEFAULT WELCOME TESTCASE ****************************
 
 describe('Server!', () => {
-  // Sample test case given to test / endpoint.
   it('Returns the default welcome message', done => {
     chai
       .request(server)
@@ -27,50 +26,38 @@ describe('Server!', () => {
   });
 });
 
-// *********************** TODO: WRITE 2 UNIT TESTCASES **************************
-
-// ********************************************************************************
-
-
-
 describe('Testing Register API', () => {
-  it('positive : /register', done => {
+  const registrationPayload = {
+    username: `testuser_${Date.now()}`,
+    password: 'Password123!',
+  };
+
+  it('positive: /register', done => {
     chai
       .request(server)
       .post('/register')
-      .send({ id: 5, name: 'John Doe', email: "jdoe@gmail.com" })
+      .redirects(0)
+      .send(registrationPayload)
+      .end((err, res) => {
+        expect(res).to.have.status(302);
+        res.should.redirectTo(/\/login$/);
+        done();
+      });
+  });
+
+  it('negative: /register duplicate username', done => {
+    chai
+      .request(server)
+      .post('/register')
+      .send(registrationPayload)
       .end((err, res) => {
         expect(res).to.have.status(200);
-        expect(res.body.message).to.equals('Success');
+        expect(res.text).to.include('Username already exists');
         done();
       });
   });
 });
 
-
-
-
-
-
-
-
-
-
-describe('Testing Register API', () => {
-  it('positive : /register', done => {
-    // Refer above for the positive testcase implementation
-  });
-
-
-  it('Negative : /register. Checking invalid email', done => {
-    chai
-      .request(server)
-      .post('/add_user')
-      .send({ id: 5, name: 10, email: 'jdoe' })
-      .end((err, res) => {
-        expect(res).to.have.status(400);
-        expect(res.body.message).to.equals('Invalid email');
-        done();
-      });
-  });
+after(() => {
+  server.close();
 });
