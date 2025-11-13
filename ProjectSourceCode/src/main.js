@@ -115,7 +115,7 @@ async function getTrackFeatures(song, artist){
   }
 }
 
-async function processSongById(songID){
+async function processSongById(songId){
   try{
     const song = await db.oneOrNone('SELECT id, title, artist FROM songs WHERE id = $1', [songId]);
     if(!song){
@@ -127,13 +127,13 @@ async function processSongById(songID){
       console.error('Could not get track features from API');
     }
 
-    await db.none('UPDATE songs SET acousticness = $1, danceability = $2, energy = $3, instrumentalness = $4, valence = $5 WHERE id = $6', 
+    await db.none('UPDATE songs SET acousticness = $1, danceability = $2, energy = $3, instrumentalness = $4, happiness = $5 WHERE id = $6', 
       [
         analysis.acousticness,
         analysis.danceability,
         analysis.energy,
         analysis.instrumentalness,
-        analysis.valence,
+        analysis.happiness,
         song.id
       ]
       );
@@ -143,11 +143,36 @@ async function processSongById(songID){
   }
 }
 
+//endpoint to debug backend work
+app.get('/api/songs', async (req, res) => {
+  try {
+    const songs = await db.any('SELECT * FROM songs ORDER BY id');
+    res.json({
+      success: true,
+      count: songs.length,
+      songs: songs
+    });
+  } catch (error) {
+    console.error('Error fetching songs:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+});
+
 // Start the server
 const PORT = 3000;
 const HOST = '0.0.0.0'; // Bind to all interfaces so it's accessible from outside the container
-const server = app.listen(PORT, HOST, () => {
+const server = app.listen(PORT, HOST, async () => {
   console.log(`Server is running on http://${HOST}:${PORT}`);
+
+  try{
+    await processSongById(1);
+  }catch(error){
+    console.error('failed to process song:', error.message);
+  }
+
 });
 
 module.exports = server;
