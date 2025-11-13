@@ -85,7 +85,7 @@ app.post("/register", async (req, res) => {
   catch (err) {
     const error = true;
     console.log(err);
-    res.render('pages/register', { message: "Username already exists", error: true });
+    res.status(400).render('pages/register', { message: "Username already exists", error: true });
   }
 });
 
