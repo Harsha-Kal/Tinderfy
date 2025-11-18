@@ -245,6 +245,11 @@ async function processUserSongs(userId){
     console.error(`Error processing user ${userId} songs`, error.message);
   }
 }
+//k-means clustering
+async function K_clustering(k){
+  const query = "SELECT id, average_song_acousticness, average_song_danceability, average_song_energy, average_song_instrumentalness, average_song_happiness FROM users WHERE average_song_acousticness IS NOT NULL AND average_song_danceability IS NOT NULL AND average_song_energy IS NOT NULL AND average_song_instrumentalness IS NOT NULL AND average_song_happiness IS NOT NULL;"
+  //Maybe write python script? or keep in js
+}
 
 //endpoint to debug backend work
 app.get('/api/songs', async (req, res) => {
