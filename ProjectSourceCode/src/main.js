@@ -205,7 +205,7 @@ async function processUserSongs(userId){
         await new Promise(resolve => setTimeout(resolve, 5000));
       }
     }
-    const updatedSongs = await db.any('SELECT acousticness, danceability, instrumentalness, happiness FROM songs WHERE user_id = $1 AND acousticness IS NOT NULL', [userId]);
+    const updatedSongs = await db.any('SELECT acousticness, danceability, energy, instrumentalness, happiness FROM songs WHERE user_id = $1 AND acousticness IS NOT NULL', [userId]);
     if(updatedSongs.length == 0){
       console.error(`No songs with analysis data from user: ${userId}`);
     }
@@ -287,13 +287,11 @@ const HOST = '0.0.0.0'; // Bind to all interfaces so it's accessible from outsid
 const server = app.listen(PORT, HOST, async () => {
   console.log(`Server is running on http://${HOST}:${PORT}`);
 
-  /*
   try{
-    await processUserSongs(1);
+    await processUserSongs(2);
   }catch(error){
     console.error('failed to process song:', error.message);
   }
-  */
 
 });
 
