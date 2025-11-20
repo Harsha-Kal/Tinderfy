@@ -93,7 +93,7 @@ app.post("/register", async (req, res) => {
     console.log('Inserted user:', insertedUser);
 
 
-    res.redirect('home-logged-in');
+    res.redirect('/home-logged-in');
   }
   catch (err) {
     const error = true;

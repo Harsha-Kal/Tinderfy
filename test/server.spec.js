@@ -40,7 +40,7 @@ describe('Testing Register API', () => {
       .send(registrationPayload)
       .end((err, res) => {
         expect(res).to.have.status(302);
-        res.should.redirectTo(/\/login$/);
+        res.should.redirectTo(/\/home-logged-in$/);
         done();
       });
   });
