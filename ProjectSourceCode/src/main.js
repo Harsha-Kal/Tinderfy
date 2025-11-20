@@ -500,6 +500,7 @@ function normalizeFeatures(features){
 // })
 
 //endpoint to debug backend work
+
 app.get('/api/songs', async (req, res) => {
   try {
     const songs = await db.any('SELECT * FROM songs ORDER BY id');
@@ -541,10 +542,7 @@ const server = app.listen(PORT, HOST, async () => {
   console.log(`Server is running on http://${HOST}:${PORT}`);
 
   try{
-    await processUserSongs(1);
-    await processUserSongs(3);
-    await processUserSongs(4)
-    await K_clustering(1);
+    // await K_clustering(4);
     //await getSpotifyId('Dancing Queen', 'ABBA');
     //await processSongById(8);
   }catch(error){
