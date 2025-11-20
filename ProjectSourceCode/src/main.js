@@ -73,6 +73,9 @@ app.get("/login", (req, res) => {
 app.get("/register", (req, res) => {
   res.render('pages/register');
 });
+app.get("/home-logged-in", (req, res) => {
+  res.render('pages/home-logged-in', { user: req.session.user });
+});
 app.post("/register", async (req, res) => {
   const username = req.body.username;
   const password = req.body.password;
@@ -81,7 +84,16 @@ app.post("/register", async (req, res) => {
   try {
     const insertedUser = await db.one(query, [username, hash])
     console.log(insertedUser);
-    res.redirect('/login');
+    
+    //added for home-logged-in.hbs
+    req.session.user = {
+      id: insertedUser.id,
+      username: insertedUser.username
+    };
+    console.log('Inserted user:', insertedUser);
+
+
+    res.redirect('home-logged-in');
   }
   catch (err) {
     const error = true;
@@ -89,6 +101,58 @@ app.post("/register", async (req, res) => {
     res.status(400).render('pages/register', { message: "Username already exists", error: true });
   }
 });
+
+
+//login page
+app.post("/login", async (req, res) => {
+  const username = req.body.username;
+  const password = req.body.password;
+
+  try {
+    const user = await db.oneOrNone('SELECT * FROM users WHERE username = $1', [username]);
+
+    if (!user) {
+      return res.status(400).render('pages/login', { message: "Invalid username or password", error: true });
+    }
+    const passwordMatch = await bcrypt.compare(password, user.password);
+
+    if (!passwordMatch) {
+      return res.status(400).render('pages/login', { message: "Invalid username or password", error: true });
+    }
+
+    req.session.user = {
+      id: user.id,
+      username: user.username
+    };
+    console.log('Logged in user:', user);
+
+    res.redirect('/home-logged-in');
+  } catch (err) {
+    console.error(err);
+    res.status(400).render('pages/login', { message: "An error occurred", error: true });
+  }
+});
+
+app.get("/home-logged-in", (req, res) => {
+  if (!req.session.user) {
+    return res.redirect('/login');
+  }
+  res.render('pages/home-logged-in', { user: req.session.user });
+});
+
+//destroy session when logout button is clicked
+app.get("/logout", (req, res) => {
+  // Destroy the session
+  req.session.destroy(err => {
+    if (err) {
+      console.error("Error destroying session:", err);
+      return res.status(500).send("Error logging out");
+    }
+    res.redirect("/");
+  });
+});
+
+
 
 //Route for account customization
 app.get("/account-custom", (req, res) => {
