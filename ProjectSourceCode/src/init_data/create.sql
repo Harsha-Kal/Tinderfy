@@ -13,7 +13,6 @@ CREATE TABLE users(
     average_song_instrumentalness INTEGER,
     average_song_happiness INTEGER
 );
-
 CREATE TABLE songs(
     id SERIAL PRIMARY KEY NOT NULL,
     user_id INTEGER NOT NULL,
@@ -26,6 +25,16 @@ CREATE TABLE songs(
     instrumentalness INTEGER,
     happiness INTEGER,
     FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+CREATE TABLE users_to_songs(
+    id SERIAL PRIMARY KEY NOT NULL,
+    user_id INTEGER NOT NULL,
+    song_id INTEGER NOT NULL,
+
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (song_id) REFERENCES songs(id) ON DELETE CASCADE,
+    UNIQUE(user_id, song_id)
 );
 
 CREATE TABLE user_preferences(
