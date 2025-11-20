@@ -72,6 +72,9 @@ app.get("/login", (req, res) => {
 app.get("/register", (req, res) => {
   res.render('pages/register');
 });
+app.get("/account-info", (req, res) => {
+  res.render('pages/account-info');
+});
 app.post("/register", async (req, res) => {
   const username = req.body.username;
   const password = req.body.password;

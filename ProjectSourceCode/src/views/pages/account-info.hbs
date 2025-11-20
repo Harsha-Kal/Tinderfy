@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tinderfy Profile Editor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* Primary Green Accent Color: #2D9B59 */
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #2D9B59; /* Vibrant Green BG */
+            color: #1f2937; /* Dark Text for readability on light elements */
+        }
+        .profile-card {
+            background-color: #ffffff; /* White Card BG */
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        .input-field, .textarea-field {
+            background-color: #ffffff;
+            border: 1px solid #d1d5db;
+            color: #1f2937;
+            transition: all 0.2s;
+        }
+        .input-field:focus, .textarea-field:focus {
+            border-color: #2D9B59; 
+            box-shadow: 0 0 0 2px rgba(45, 155, 89, 0.4);
+            background-color: #ffffff;
+        }
+        .accent-button {
+            background: linear-gradient(45deg, #2D9B59, #4ACF78); 
+            transition: transform 0.1s ease;
+        }
+        .accent-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(45, 155, 89, 0.6);
+        }
+        .tag {
+            background-color: #e5e7eb; /* Light Gray Tag BG */
+            color: #2D9B59; /* Green Tag Text */
+        }
+        /* Custom class for the status message background when successful */
+        .bg-green-900\/50 {
+            background-color: rgba(45, 155, 89, 0.5);
+            color: #fff;
+        }
+        /* Ensure error message remains visible */
+        .bg-red-900\/50 {
+            background-color: rgba(153, 27, 27, 0.5);
+            color: #fff;
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-8 min-h-screen">
+
+    <div id="app" class="max-w-4xl mx-auto">
+        <header class="text-center mb-10">
+            <h1 class="text-4xl font-extrabold text-white tracking-tight">Your Tinderfy Profile</h1>
+            <p class="text-gray-700 mt-2">Edit your Tinderfy profile details. Your music taste is the key!</p>
+        </header>
+
+                <div id="statusMessage" class="p-3 mb-4 rounded-lg text-center font-medium hidden"></div>
+
+                <div id="profileFormContainer" class="profile-card p-6 sm:p-10 rounded-xl shadow-2xl space-y-8">
+            <div id="authStatus" class="text-sm text-gray-500 mb-6">
+                <i class="fas fa-user-circle mr-2"></i> User ID: <span id="userIdDisplay" class="font-mono text-xs">Loading...</span>
+            </div>
+
+                        <section class="flex flex-col md:flex-row items-center space-y-6 md:space-y-0 md:space-x-8 pb-8 border-b border-gray-300">
+                <div class="flex-shrink-0">
+                    <div class="w-32 h-32 bg-gray-200 rounded-full overflow-hidden flex items-center justify-center border-4 border-[#1D7E45]">
+                        {{!-- In a real HBS app, you might use an image tag here: <img src="{{user.photoUrl}}" alt="Profile Photo"> --}}
+                        <i class="fas fa-camera text-4xl text-gray-500"></i> 
+                    </div>
+                    <p class="text-xs text-center mt-2 text-gray-500">Photo URL (Simulated)</p>
+                </div>
+                <div class="flex-grow space-y-4 w-full">
+                    <div>
+                        <label for="name" class="block text-sm font-medium mb-1">Full Name</label>
+                        {{!-- Initial value set via HBS for server-side rendering --}}
+                        <input type="text" id="name" placeholder="Alex Johnson" class="input-field w-full p-3 rounded-lg" required value="{{profile.name}}">
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label for="username" class="block text-sm font-medium mb-1">Username</label>
+                            <input type="text" id="username" placeholder="VibeMaster" class="input-field w-full p-3 rounded-lg" required value="{{profile.username}}">
+                        </div>
+                        <div>
+                            <label for="dob" class="block text-sm font-medium mb-1">Date of Birth</label>
+                            <input type="date" id="dob" class="input-field w-full p-3 rounded-lg" required value="{{profile.dob}}">
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+                        <section class="space-y-4">
+                <div>
+                    <label for="bio" class="block text-sm font-medium mb-1">About Me / Bio (Max 200 chars)</label>
+                    <textarea id="bio" rows="3" maxlength="200" placeholder="A little about me and what I'm looking for..." class="textarea-field w-full p-3 rounded-lg">{{profile.bio}}</textarea>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label for="location" class="block text-sm font-medium mb-1">Location</label>
+                        <input type="text" id="location" placeholder="Denver, CO" class="input-field w-full p-3 rounded-lg" value="{{profile.location}}">
+                    </div>
+                    <div>
+                        <label for="gender" class="block text-sm font-medium mb-1">Gender / Identity</label>
+                        <select id="gender" class="input-field w-full p-3 rounded-lg">
+                            <option value="">Select...</option>
+                            <option value="male" {{#if (eq profile.gender 'male')}}selected{{/if}}>Man</option>
+                            <option value="female" {{#if (eq profile.gender 'female')}}selected{{/if}}>Woman</option>
+                            <option value="nonbinary" {{#if (eq profile.gender 'nonbinary')}}selected{{/if}}>Non-Binary</option>
+                            <option value="other" {{#if (eq profile.gender 'other')}}selected{{/if}}>Other / Prefer not to say</option>
+                        </select>
+                    </div>
+                </div>
+            </section>
+
+                        <section class="space-y-4">
+                <h2 class="text-2xl font-semibold text-gray-800 border-b border-gray-300 pb-2">Interests</h2>
+                <div>
+                    <label for="hobbies" class="block text-sm font-medium mb-1">Hobbies (Comma Separated)</label>
+                    {{!-- If hobbies is an array, you need to join it for the input field --}}
+                    <input type="text" id="hobbies" placeholder="Hiking, Cooking, Gaming, Reading" class="input-field w-full p-3 rounded-lg" value="{{profile.hobbiesRaw}}">
+                    <div id="hobbiesDisplay" class="mt-2 flex flex-wrap gap-2 text-sm">
+                        {{!-- Hobby tags will be dynamically injected by JS, but you could pre-render them: --}}
+                        {{#each profile.hobbies}}
+                        <span class="tag px-3 py-1 rounded-full text-xs font-semibold flex items-center">
+                            <i class="fas fa-tag mr-1"></i> {{this}}
+                        </span>
+                        {{/each}}
+                    </div>
+                </div>
+            </section>
+
+                        <section class="space-y-4">
+                <div class="flex justify-between items-center border-b border-gray-300 pb-2">
+                    <h2 class="text-2xl font-semibold text-gray-800 flex items-center">
+                        <i class="fas fa-music mr-2 text-[#2D9B59]"></i> Liked Songs
+                    </h2>
+                    <button onclick="goToLikedSongsPage()" class="text-sm font-semibold px-3 py-1 rounded-full bg-[#2D9B59] text-white shadow-md hover:opacity-90 transition duration-150 flex items-center">
+                        View Full List <i class="fas fa-chevron-right text-xs ml-2"></i>
+                    </button>
+                </div>
+                <p class="text-xs text-gray-600 -mt-2">Crucial for Matching</p>
+                <div>
+                    <label for="likedSongs" class="block text-sm font-medium mb-1">Your 5 Favorite Songs/Artists (Comma Separated)</label>
+                    <textarea id="likedSongs" rows="3" placeholder="Song 1 by Artist A, Song 2 by Artist B, Artist C - Track Title" class="textarea-field w-full p-3 rounded-lg">{{profile.likedSongsRaw}}</textarea>
+                    <p class="text-xs text-gray-600 mt-1">These are used to find your perfect match!</p>
+                    <div id="songsDisplay" class="mt-2 flex flex-wrap gap-2 text-sm">
+                        {{!-- Song tags will be dynamically injected by JS, but you could pre-render them: --}}
+                        {{#each profile.likedSongs}}
+                        <span class="tag px-3 py-1 rounded-full text-xs font-semibold flex items-center">
+                            <i class="fas fa-compact-disc mr-1"></i> {{this}}
+                        </span>
+                        {{/each}}
+                    </div>
+                </div>
+            </section>
+
+                        <section class="space-y-4 pt-8 border-t border-gray-300">
+                <h2 class="text-2xl font-semibold text-gray-800 border-b border-gray-300 pb-2">Security</h2>
+                <div>
+                    <label for="newPassword" class="block text-sm font-medium mb-1">New Password (Simulated)</label>
+                    <input type="password" id="newPassword" placeholder="Enter new password" class="input-field w-full p-3 rounded-lg">
+                    <button onclick="changePassword(event)" class="accent-button mt-3 w-full sm:w-auto px-6 py-2 rounded-lg font-bold text-white shadow-md">
+                        Change Password
+                    </button>
+                    <p id="passwordMessage" class="text-xs mt-2 text-red-600"></p>
+                </div>
+            </section>
+
+                        <div class="pt-8">
+                <button id="saveButton" onclick="saveProfile()" class="accent-button w-full px-8 py-4 rounded-xl text-lg font-extrabold text-white shadow-xl hover:scale-[1.01]">
+                    <i class="fas fa-save mr-2"></i> Save Profile
+                </button>
+            </div>
+        </div>
+
+                <div id="likedSongsPage" class="profile-card p-6 sm:p-10 rounded-xl shadow-2xl space-y-8 hidden">
+            <button onclick="backToProfile()" class="text-sm font-bold text-[#2D9B59] mb-6 flex items-center hover:text-[#1D7E45]">
+                <i class="fas fa-arrow-left mr-2"></i> Back to Profile Editor
+            </button>
+
+            <h2 class="text-3xl font-extrabold text-gray-800 border-b border-gray-300 pb-3 flex items-center">
+                <i class="fas fa-list-ul mr-2 text-[#2D9B59]"></i> Your Complete Music Vibe List
+            </h2>
+
+            <p class="text-gray-600 mb-6">This is the full list of songs and artists you've added to your profile. We use these to find your most compatible matches!</p>
+            
+            <div id="fullSongsList" class="space-y-4">
+                {{!-- You could use an #each helper here to pre-render the list if needed, but the original JS handles this dynamically --}}
+            </div>
+
+            <button onclick="backToProfile()" class="accent-button w-full sm:w-1/2 mx-auto mt-10 px-8 py-3 rounded-xl text-lg font-extrabold text-white shadow-xl hover:scale-[1.01]">
+                <i class="fas fa-edit mr-2"></i> Edit Profile
+            </button>
+        </div>
+    </div>
+
+        <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Set Firebase Log Level to Debug
+        setLogLevel('Debug');
+
+        // Global Firebase variables
+        let app;
+        let db;
+        let auth;
+        let userId = null;
+        let isAuthReady = false;
+
+        // Global variable exposure for onclick handlers
+        window.saveProfile = saveProfile;
+        window.changePassword = changePassword;
+        window.updateTagDisplays = updateTagDisplays;
+        window.goToLikedSongsPage = goToLikedSongsPage;
+        window.backToProfile = backToProfile;
+
+        // --- Configuration & Initialization (Using HBS variables for context) ---
+        // These variables must be provided by the server rendering the HBS file
+        const appId = '{{appId}}' ? '{{appId}}' : 'default-dating-app';
+        const firebaseConfig = '{{{firebaseConfigJSON}}}' ? JSON.parse('{{{firebaseConfigJSON}}}') : null;
+        const initialAuthToken = '{{initialAuthToken}}' ? '{{initialAuthToken}}' : null;
+
+        const STATUS_MESSAGE = document.getElementById('statusMessage');
+        const USER_ID_DISPLAY = document.getElementById('userIdDisplay');
+        const HOBBIES_DISPLAY = document.getElementById('hobbiesDisplay');
+        const SONGS_DISPLAY = document.getElementById('songsDisplay');
+        const SAVE_BUTTON = document.getElementById('saveButton');
+        
+        // NEW Page elements
+        const PROFILE_CONTAINER = document.getElementById('profileFormContainer');
+        const SONGS_PAGE = document.getElementById('likedSongsPage');
+        const FULL_SONGS_LIST = document.getElementById('fullSongsList');
+
+
+        function displayMessage(message, isError = false) {
+            STATUS_MESSAGE.textContent = message;
+            STATUS_MESSAGE.classList.remove('hidden', 'bg-red-900\/50', 'bg-green-900\/50');
+            if (isError) {
+                STATUS_MESSAGE.classList.add('bg-red-900\/50');
+            } else {
+                STATUS_MESSAGE.classList.add('bg-green-900\/50');
+            }
+            STATUS_MESSAGE.style.whiteSpace = 'normal'; 
+            setTimeout(() => {
+                STATUS_MESSAGE.classList.add('hidden');
+            }, 5000);
+        }
+
+        async function initFirebase() {
+            if (!firebaseConfig) {
+                console.error("Firebase config is missing.");
+                displayMessage("Configuration error. Cannot initialize Firebase.", true);
+                return;
+            }
+
+            try {
+                app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                // Authentication Listener
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        userId = user.uid;
+                    } else {
+                        // Attempt to sign in if token is available
+                        if (initialAuthToken) {
+                            await signInWithCustomToken(auth, initialAuthToken);
+                            userId = auth.currentUser.uid;
+                        } else {
+                            // Fallback to anonymous sign-in
+                            const anonUser = await signInAnonymously(auth);
+                            userId = anonUser.user.uid;
+                        }
+                    }
+
+                    if (userId) {
+                        USER_ID_DISPLAY.textContent = userId;
+                        isAuthReady = true;
+                        startRealtimeListener();
+                    } else {
+                        console.error("Failed to determine user ID.");
+                        displayMessage("Authentication failed.", true);
+                    }
+                });
+            } catch (error) {
+                console.error("Firebase initialization failed:", error);
+                displayMessage("Firebase initialization failed: " + error.message, true);
+            }
+        }
+
+        function getProfileDocRef() {
+            // Private data path: /artifacts/{appId}/users/{userId}/profile_data/user_profile
+            return doc(db, 'artifacts', appId, 'users', userId, 'profile_data', 'user_profile');
+        }
+
+        function updateTagDisplays() {
+            const hobbiesInput = document.getElementById('hobbies').value.trim();
+            const songsInput = document.getElementById('likedSongs').value.trim();
+
+            const renderTags = (container, listString, iconClass) => {
+                container.innerHTML = '';
+                if (!listString) return;
+
+                const tags = listString.split(',').map(s => s.trim()).filter(s => s.length > 0);
+                tags.forEach(tag => {
+                    const tagElement = document.createElement('span');
+                    tagElement.className = 'tag px-3 py-1 rounded-full text-xs font-semibold flex items-center';
+                    tagElement.innerHTML = `<i class="${iconClass} mr-1"></i> ${tag}`;
+                    container.appendChild(tagElement);
+                });
+            };
+
+            renderTags(HOBBIES_DISPLAY, hobbiesInput, 'fas fa-tag');
+            renderTags(SONGS_DISPLAY, songsInput, 'fas fa-compact-disc');
+        }
+
+        // Add input listeners to update tags dynamically
+        document.getElementById('hobbies').addEventListener('input', updateTagDisplays);
+        document.getElementById('likedSongs').addEventListener('input', updateTagDisplays);
+
+        // --- Real-time Data Listener ---
+        function startRealtimeListener() {
+            if (!isAuthReady || !db) return;
+
+            const profileRef = getProfileDocRef();
+
+            try {
+                onSnapshot(profileRef, (docSnap) => {
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
+                        console.log("Current data:", data);
+
+                        // Populate form fields
+                        document.getElementById('name').value = data.name || '';
+                        document.getElementById('dob').value = data.dob || '';
+                        document.getElementById('username').value = data.username || '';
+                        document.getElementById('bio').value = data.bio || '';
+                        document.getElementById('location').value = data.location || '';
+                        document.getElementById('gender').value = data.gender || '';
+                        document.getElementById('hobbies').value = Array.isArray(data.hobbies) ? data.hobbies.join(', ') : (data.hobbies || '');
+                        document.getElementById('likedSongs').value = Array.isArray(data.likedSongs) ? data.likedSongs.join(', ') : (data.likedSongs || '');
+
+                        updateTagDisplays(); // Re-render tags after loading data
+                        displayMessage("Profile data loaded successfully!", false);
+
+                    } else {
+                        console.log("No profile data found. Starting fresh.");
+                        displayMessage("Welcome! Time to create your dating profile.", false);
+                    }
+                }, (error) => {
+                    console.error("Firestore snapshot error:", error);
+                    displayMessage("Error retrieving profile data: " + error.message, true);
+                });
+            } catch (error) {
+                console.error("Failed to set up listener:", error);
+                displayMessage("Failed to set up listener: " + error.message, true);
+            }
+        }
+
+
+        // --- Save Functionality ---
+        async function saveProfile() {
+            if (!isAuthReady || !db) {
+                displayMessage("Authentication not ready. Please wait.", true);
+                return;
+            }
+
+            SAVE_BUTTON.disabled = true;
+            SAVE_BUTTON.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Saving...';
+
+            const name = document.getElementById('name').value.trim();
+            const dob = document.getElementById('dob').value;
+            const username = document.getElementById('username').value.trim();
+            const bio = document.getElementById('bio').value.trim();
+            const location = document.getElementById('location').value.trim();
+            const gender = document.getElementById('gender').value;
+            const hobbiesRaw = document.getElementById('hobbies').value.trim();
+            const songsRaw = document.getElementById('likedSongs').value.trim();
+
+            if (!name || !username || !dob) {
+                displayMessage("Name, Username, and DOB are required fields.", true);
+                SAVE_BUTTON.disabled = false;
+                SAVE_BUTTON.innerHTML = '<i class="fas fa-save mr-2"></i> Save Profile';
+                return;
+            }
+
+            // Convert comma-separated strings to clean arrays
+            const formatList = (rawString) => {
+                return rawString.split(',').map(s => s.trim()).filter(s => s.length > 0);
+            };
+
+            const profileData = {
+                name: name,
+                username: username,
+                dob: dob,
+                bio: bio,
+                location: location,
+                gender: gender,
+                hobbies: formatList(hobbiesRaw),
+                likedSongs: formatList(songsRaw),
+                // Updated simulated photo placeholder text color for light background
+                photoUrl: 'https://placehold.co/128x128/1f2937/ffffff?text=P', 
+                lastUpdated: new Date().toISOString()
+            };
+
+            const profileRef = getProfileDocRef();
+
+            try {
+                // Use setDoc with { merge: true } to create or update the document
+                await setDoc(profileRef, profileData, { merge: true });
+                console.log("Profile successfully saved!");
+                displayMessage("Profile updated successfully!", false);
+            } catch (e) {
+                console.error("Error saving document: ", e);
+                displayMessage("Error saving profile: " + e.message, true);
+            } finally {
+                SAVE_BUTTON.disabled = false;
+                SAVE_BUTTON.innerHTML = '<i class="fas fa-save mr-2"></i> Save Profile';
+            }
+        }
+
+        // --- Simulated Functionality (Change Password) ---
+        function changePassword(event) {
+            event.preventDefault();
+            const newPassword = document.getElementById('newPassword').value;
+            const passwordMessage = document.getElementById('passwordMessage');
+
+            if (!newPassword) {
+                passwordMessage.textContent = 'Please enter a new password.';
+                return;
+            }
+
+            // In a real application, you would use updatePassword(user, newPassword)
+            // For this simulation, we just show a success message.
+            passwordMessage.textContent = 'Password change process initiated. (Actual Firebase Auth required).';
+            passwordMessage.style.color = '#1D7E45'; // Darker green success color
+            document.getElementById('newPassword').value = '';
+        }
+        
+        // --- NEW: Go to Liked Songs Page (Actual Navigation Logic) ---
+        function goToLikedSongsPage() {
+            const songsRaw = document.getElementById('likedSongs').value.trim();
+            const songs = songsRaw.split(',').map(s => s.trim()).filter(s => s.length > 0);
+            
+            // 1. Hide the profile editor and show the songs page
+            PROFILE_CONTAINER.classList.add('hidden');
+            SONGS_PAGE.classList.remove('hidden');
+
+            // 2. Populate the songs list dynamically
+            FULL_SONGS_LIST.innerHTML = '';
+            
+            if (songs.length > 0) {
+                songs.forEach((song, index) => {
+                    const listItem = document.createElement('div');
+                    // Style each item as a visually distinct card-like entry
+                    listItem.className = 'p-3 bg-gray-50 rounded-lg flex items-center shadow-sm hover:shadow-md transition duration-150';
+                    listItem.innerHTML = `
+                        <span class="text-xl font-bold text-[#2D9B59] mr-4 w-6 text-center">${index + 1}.</span>
+                        <p class="text-gray-800 font-medium flex-grow">${song}</p>
+                        <i class="fas fa-heart text-red-400 text-lg ml-4"></i>
+                    `;
+                    FULL_SONGS_LIST.appendChild(listItem);
+                });
+            } else {
+                FULL_SONGS_LIST.innerHTML = `
+                    <div class="p-6 text-center border-2 border-dashed border-gray-300 rounded-xl">
+                        <i class="fas fa-exclamation-circle text-3xl text-gray-500 mb-3"></i>
+                        <p class="text-gray-700 font-semibold">No songs added yet!</p>
+                        <p class="text-gray-500 text-sm mt-1">Go back to the profile editor and list your favorite music.</p>
+                    </div>
+                `;
+            }
+            
+             // Clear any lingering status messages from the profile editor
+             STATUS_MESSAGE.classList.add('hidden');
+        }
+
+        // --- NEW: Go Back to Profile Editor ---
+        function backToProfile() {
+            SONGS_PAGE.classList.add('hidden');
+            PROFILE_CONTAINER.classList.remove('hidden');
+        }
+
+
+        // Start the application
+        initFirebase();
+    </script>
+</body>
+</html>
