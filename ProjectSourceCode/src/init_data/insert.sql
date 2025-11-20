@@ -15,15 +15,44 @@ VALUES
     ('user10', 'password10', 'Test User 10', 'user10@test.com', 25, 'Female');
 
 INSERT INTO songs 
-  (user_id, title, artist) 
+  (title, artist) 
 VALUES 
-    (1, 'Bohemian Rhapsody', 'Queen'),
-    (1, 'Billie Jean', 'Michael Jackson'),
-    (1, 'Hotel California', 'Eagles'),
-    (2, 'Imagine', 'John Lennon'),
-    (2, 'Smells Like Teen Spirit', 'Nirvana'),
-    (1, 'Stairway to Heaven', 'Led Zeppelin'),
-    (2, 'Hey Jude', 'The Beatles'),
-    (1, 'Purple Rain', 'Prince'),
-    (2, 'Dancing Queen', 'ABBA'),
-    (2, 'Thriller', 'Michael Jackson');
+    ('Bohemian Rhapsody', 'Queen'),
+    ('Billie Jean', 'Michael Jackson'),
+    ('Hotel California', 'Eagles'),
+    ('Imagine', 'John Lennon'),
+    ('Smells Like Teen Spirit', 'Nirvana'),
+    ('Stairway to Heaven', 'Led Zeppelin'),
+    ('Hey Jude', 'The Beatles'),
+    ('Purple Rain', 'Prince'),
+    ('Dancing Queen', 'ABBA'),
+    ('Thriller', 'Michael Jackson'),
+    ('Sweet Child O'' Mine', 'Guns N'' Roses'),
+    ('Like a Rolling Stone', 'Bob Dylan'),
+    ('Wonderwall', 'Oasis'),
+    ('Don''t Stop Believin''', 'Journey'),
+    ('Livin'' on a Prayer', 'Bon Jovi'),
+    ('Shape of You', 'Ed Sheeran'),
+    ('Blinding Lights', 'The Weeknd'),
+    ('Watermelon Sugar', 'Harry Styles'),
+    ('Levitating', 'Dua Lipa'),
+    ('Good 4 U', 'Olivia Rodrigo'),
+    ('Uptown Funk', 'Bruno Mars'),
+    ('Happy', 'Pharrell Williams'),
+    ('Shake It Off', 'Taylor Swift'),
+    ('Someone Like You', 'Adele'),
+    ('Rolling in the Deep', 'Adele'),
+    ('Sweet Caroline', 'Neil Diamond'),
+    ('I Will Always Love You', 'Whitney Houston'),
+    ('Eye of the Tiger', 'Survivor'),
+    ('Despacito', 'Luis Fonsi'),
+    ('Old Town Road', 'Lil Nas X');
+
+INSERT INTO users_to_songs 
+  (user_id, song_id) 
+VALUES 
+    (1, 1), (1, 2), (1, 3), (1, 6), (1, 8), (1, 11), (1, 15), (1, 26),
+    (2, 4), (2, 5), (2, 7), (2, 9), (2, 10), (2, 12), (2, 14), (2, 27),
+    (3, 11), (3, 12), (3, 13), (3, 14), (3, 15), (3, 28),
+    (4, 16), (4, 17), (4, 18), (4, 19), (4, 20), (4, 29),
+    (5, 21), (5, 22), (5, 23), (5, 24), (5, 25), (5, 30);

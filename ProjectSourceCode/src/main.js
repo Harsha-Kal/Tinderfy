@@ -8,6 +8,7 @@ const pgp = require('pg-promise')(); // To connect to the Postgres DB from the n
 const bodyParser = require('body-parser');
 const session = require('express-session'); // To set the session object. To store or access session data, use the `req.session`, which is (generally) serialized as JSON by the store.
 const bcrypt = require('bcryptjs');
+const KMeans = require('ml-kmeans'); //for clustering
 
 const hbs = handlebars.create({
   extname: 'hbs',
@@ -181,7 +182,10 @@ async function processSongById(songId){
 //function to process all user songs and update user db
 async function processUserSongs(userId){
   try{
-    const songs = await db.any('SELECT id, title, artist, acousticness, danceability, energy, instrumentalness, happiness FROM songs WHERE user_id = $1', [userId]);
+    const songs = await db.any(`SELECT s.id, s.title, s.artist, s.acousticness
+FROM songs s
+JOIN users_to_songs uts ON s.id = uts.song_id
+WHERE uts.user_id = $1;`, [userId]);
     if(songs.length == 0){
       console.error('No songs found from user');
     }
@@ -205,7 +209,11 @@ async function processUserSongs(userId){
         await new Promise(resolve => setTimeout(resolve, 5000));
       }
     }
-    const updatedSongs = await db.any('SELECT acousticness, danceability, energy, instrumentalness, happiness FROM songs WHERE user_id = $1 AND acousticness IS NOT NULL', [userId]);
+    const updatedSongs = await db.any(`SELECT s.acousticness, s.danceability, s.energy, s.instrumentalness, s.happiness
+FROM songs s
+JOIN users_to_songs uts ON s.id = uts.song_id
+WHERE uts.user_id = $1
+  AND s.acousticness IS NOT NULL;`, [userId]);
     if(updatedSongs.length == 0){
       console.error(`No songs with analysis data from user: ${userId}`);
     }
@@ -247,9 +255,77 @@ async function processUserSongs(userId){
 }
 //k-means clustering
 async function K_clustering(k){
-  const query = "SELECT id, average_song_acousticness, average_song_danceability, average_song_energy, average_song_instrumentalness, average_song_happiness FROM users WHERE average_song_acousticness IS NOT NULL AND average_song_danceability IS NOT NULL AND average_song_energy IS NOT NULL AND average_song_instrumentalness IS NOT NULL AND average_song_happiness IS NOT NULL;"
-  //Maybe write python script? or keep in js
+  try{
+  const query = `SELECT id, average_song_acousticness, average_song_danceability, average_song_energy, average_song_instrumentalness, average_song_happiness 
+  FROM users 
+  WHERE average_song_acousticness IS NOT NULL 
+  AND average_song_danceability IS NOT NULL 
+  AND average_song_energy IS NOT NULL 
+  AND average_song_instrumentalness IS NOT NULL 
+  AND average_song_happiness IS NOT NULL
+  ;`;
+
+  const users = await db.any(query);
+
+  if(users.length === 0) {
+    console.error('No users with complete feature vectors');
+    return null;
+  }
+  //Extract User ID and feature vectors
+  const userIds = users.map(user => user.id);
+  const features = users.map(user => [
+    user.average_song_acousticness,
+      user.average_song_danceability,
+      user.average_song_energy,
+      user.average_song_instrumentalness,
+      user.average_song_happiness
+  ]);
+
+  //Normalize features (0-1)
+  const normalized = normalizeFeatures(features);
+  const result = KMeans.kmeans(normalized, k, {initialization: 'kmeans++'});
+
+  //Update database with cluster ids
+  for(let i = 0; i < userIds.length; i++) {
+    await db.none('UPDATE users SET cluster_id = $1 WHERE id = $2;',
+      [result.clusters[i], userIds[i]])
+  }
+  //confirmation
+  console.log(`Clustered ${users.length} users into ${k} clusters`);
+  return result;
+} catch (error){
+  console.error('Error in k means clustering: ', error);
+  return null
 }
+
+}
+
+function normalizeFeatures(features){
+  const numFeatures = features[0].length;
+  const mins = [];
+  const maxs = [];
+
+  //Find min and max for each feature
+  for(let i = 0; i < numFeatures; i++) {
+    const values = features.map(row => row[i]);
+    mins.push(Math.min(...values));
+    maxs.push(Math.max(...values));
+  }
+  return features.map(row => row.map((value, index) => {
+    const range = maxs[index] - mins[index];
+    return range === 0? 0 : (value - mins[index]) / range; 
+  }))
+}
+
+// //endpoint for clustering
+// app.post('/api/cluster', async (req, res) => {
+//   const k = 5
+//   const result = await K_clustering(k);
+//   res.json({
+//     success: result !== null,
+//     message: result ? `Clustered users into ${k} clusters` : `Clustering failed`
+//   })
+// })
 
 //endpoint to debug backend work
 app.get('/api/songs', async (req, res) => {
@@ -293,7 +369,10 @@ const server = app.listen(PORT, HOST, async () => {
   console.log(`Server is running on http://${HOST}:${PORT}`);
 
   try{
+    await processUserSongs(1);
     await processUserSongs(2);
+    await processUserSongs(3);
+    await K_clustering(1);
   }catch(error){
     console.error('failed to process song:', error.message);
   }
