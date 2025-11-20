@@ -1,0 +1,10 @@
+1. Rewrote RapidAPI implementation
+2. Fully implemented spotify API to get Spotify ID from track name and artist name
+3. Fully implemented getting track features and processing user songs
+4. Fully implemented k means clustering to users with processed songs
+5. Fixed Database
+6. Updated Matches page
+7. Updated information page
+8. Created logged-in home page. 
+9. Login and Register pages now link to logged-in home page.
+10. Added user info tracking

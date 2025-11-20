@@ -51,7 +51,7 @@ app.use(bodyParser.json()); // specify the usage of JSON for parsing request bod
 // initialize session variables
 app.use(
   session({
-    secret: 'temp secret',
+    secret: process.env.SESSION_SECRET,
     saveUninitialized: false,
     resave: false,
   })
