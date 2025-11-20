@@ -129,24 +129,31 @@ app.get('/welcome', (req, res) => {
   res.json({ status: 'success', message: 'Welcome!' });
 });
 
-//function to run rapidAPI endpoint to get track features
+
 const RAPIDAPI_HOST = 'track-analysis.p.rapidapi.com';
-async function getTrackFeatures(song, artist) {
-  try {
-    const response = await axios.get('https://track-analysis.p.rapidapi.com/pktx/analysis', {
-      params: {
-        song: song,
-        artist: artist
-      },
+async function getTrackFeatures(spotifyId){
+  try{
+    query = 'https://track-analysis.p.rapidapi.com/pktx/spotify/' + spotifyId;
+    const responce = await axios.get(query, {
       headers: {
         'x-rapidapi-key': process.env.API_KEY,
         'x-rapidapi-host': RAPIDAPI_HOST
       }
     });
-    return response.data;
-  } catch (error) {
-    console.error(`Error fetching analysis for ${song} by ${artist}:`, error.message);
+    //console.log('IT WORKED');
+    //console.log(responce.data);
+    return responce.data;
+  } catch (error){
+    console.error(`Error fetching analysis for ${spotifyId}:`, error.message);
     return null;
+  }
+}
+
+async function hasTrackFeatures(song, artist){
+  if(getTrackFeatures == null){
+    return false;
+  }else{
+    return true;
   }
 }
 
@@ -373,6 +380,9 @@ const server = app.listen(PORT, HOST, async () => {
     await processUserSongs(2);
     await processUserSongs(3);
     await K_clustering(1);
+    console.log(hasTrackFeatures("Dancing Queen", "ABBA"));
+    console.log(hasTrackFeatures("Dancing Quee", "ABBA"));
+    await getTrackFeatures('11dFghVXANMlKmJXsNCbNl');
   }catch(error){
     console.error('failed to process song:', error.message);
   }
