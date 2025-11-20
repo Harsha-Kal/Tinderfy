@@ -193,23 +193,79 @@ app.get('/welcome', (req, res) => {
   res.json({ status: 'success', message: 'Welcome!' });
 });
 
-//function to run rapidAPI endpoint to get track features
-const RAPIDAPI_HOST = 'track-analysis.p.rapidapi.com';
-async function getTrackFeatures(song, artist) {
-  try {
-    const response = await axios.get('https://track-analysis.p.rapidapi.com/pktx/analysis', {
+//Gets a Spotify acess token to call their endpoint
+async function getSpotifyAccessToken() {
+  const clientId = process.env.SPOTIFY_CLIENT_ID;
+  const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
+
+  try{
+    const response = await axios.post('https://accounts.spotify.com/api/token',
+      new URLSearchParams({
+        grant_type: 'client_credentials'
+      }),
+      {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Authorization': `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`
+        }
+      }
+    );
+    return response.data.access_token;
+  }catch(error){
+    console.log('Error receiving Spotify API token:', error.message);
+    return null;
+  }
+}
+
+//Takes track name and artist name and returns the track's spotify id
+async function getSpotifyId(trackName, artistName) {
+  try{
+    const token = await getSpotifyAccessToken();
+    if (!token) {
+      console.log('Failed to receive Spotify API Token');
+      return null;
+    }
+    const query = `track:${trackName} artist:${artistName}`;
+    
+    const response = await axios.get('https://api.spotify.com/v1/search', {
       params: {
-        song: song,
-        artist: artist
+        q: query,
+        type: 'track',
+        limit: 1
       },
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (response.data.tracks.items.length > 0) {
+      const track = response.data.tracks.items[0];
+      //console.log(`SPOTIFY ID IS: ${track.id}`);
+      return track.id;
+    } else {
+      console.log(`No results found for "${trackName}" by "${artistName}"`);
+      return null;
+    }
+  }catch(error) {
+    console.log('Error searching Spotify:', error.message);
+    return null;
+  }
+}
+
+//Takes Spotify Id and returns track's features
+const RAPIDAPI_HOST = 'track-analysis.p.rapidapi.com';
+async function getTrackFeatures(spotifyId){
+  try{
+    query = 'https://track-analysis.p.rapidapi.com/pktx/spotify/' + spotifyId;
+    const responce = await axios.get(query, {
       headers: {
         'x-rapidapi-key': process.env.API_KEY,
         'x-rapidapi-host': RAPIDAPI_HOST
       }
     });
-    return response.data;
-  } catch (error) {
-    console.error(`Error fetching analysis for ${song} by ${artist}:`, error.message);
+    return responce.data;
+  } catch (error){
+    console.log(`Error fetching track features for ${spotifyId}:`, error.message);
     return null;
   }
 }
@@ -222,9 +278,17 @@ async function processSongById(songId){
       console.error('Song not found');
     }
 
-    const analysis = await getTrackFeatures(song.title, song.artist);
+    //I will rewrite so it takes spotify_id from db intead of running getSpotifyId again
+    const spotifyId = await getSpotifyId(song.title, song.artist);
+    if(spotifyId == null){
+      console.error(`Could not find Spotify ID for "${song.title}" by "${song.artist}"`);
+      return;
+    }
+
+    const analysis = await getTrackFeatures(spotifyId);
     if(analysis.acousticness == null){
       console.error('Could not get track features from API');
+      return;
     }
 
     await db.none('UPDATE songs SET acousticness = $1, danceability = $2, energy = $3, instrumentalness = $4, happiness = $5 WHERE id = $6', 
@@ -255,7 +319,13 @@ WHERE uts.user_id = $1;`, [userId]);
     }
     for(const song of songs){
       if(song.acousticness == null || song.acousticness == undefined){
-        const analysis = await getTrackFeatures(song.title, song.artist);
+        //I will rewrite so it takes spotify_id from db intead of running getSpotifyId again
+        const spotifyId = await getSpotifyId(song.title, song.artist);
+        if(!spotifyId){
+          console.log(`Could not find Spotify ID for "${song.title}" by "${song.artist}"`);
+          continue;
+        }
+        const analysis = await getTrackFeatures(spotifyId);
         if(analysis.acousticness !== null && analysis.acousticness !== undefined){
           await db.none('UPDATE songs SET acousticness = $1, danceability = $2, energy = $3, instrumentalness = $4, happiness = $5 WHERE id = $6', 
             [
@@ -437,6 +507,8 @@ const server = app.listen(PORT, HOST, async () => {
     await processUserSongs(2);
     await processUserSongs(3);
     await K_clustering(1);
+    //await getSpotifyId('Dancing Queen', 'ABBA');
+    //await processSongById(8);
   }catch(error){
     console.error('failed to process song:', error.message);
   }
