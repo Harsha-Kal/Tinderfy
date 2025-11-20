@@ -11,11 +11,11 @@ CREATE TABLE users(
     average_song_danceability INTEGER,
     average_song_energy INTEGER,
     average_song_instrumentalness INTEGER,
-    average_song_happiness INTEGER
+    average_song_happiness INTEGER,
+    cluster_id INTEGER
 );
 CREATE TABLE songs(
     id SERIAL PRIMARY KEY NOT NULL,
-    user_id INTEGER NOT NULL,
     spotify_id VARCHAR(255),
     title VARCHAR(255) NOT NULL,
     artist VARCHAR(255) NOT NULL,
@@ -23,8 +23,7 @@ CREATE TABLE songs(
     danceability INTEGER,
     energy INTEGER,
     instrumentalness INTEGER,
-    happiness INTEGER,
-    FOREIGN KEY (user_id) REFERENCES users(id)
+    happiness INTEGER
 );
 
 CREATE TABLE users_to_songs(

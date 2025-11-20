@@ -76,6 +76,44 @@ app.get("/register", (req, res) => {
 app.get("/home-logged-in", (req, res) => {
   res.render('pages/home-logged-in', { user: req.session.user });
 });
+const testUsers = [
+  {username: "user1", password: "password1"},
+  {username: "user2", password: "password2"},
+  {username: "user3", password: "password3"},
+  {username: "user4", password: "password4"},
+  {username: "user5", password: "password5"},
+  {username: "user6", password: "password6"},
+  {username: "user7", password: "password7"},
+  {username: "user8", password: "password8"},
+  {username: "user9", password: "password9"},
+  {username: "user10", password: "password10"}
+];
+
+// async function seedUsers() {
+//   console.log("Seeding test users…");
+
+//   for (const user of testUsers) {
+//     const hashedPassword = await bcrypt.hash(user.password, 10);
+
+//     await db.none(
+//       `INSERT INTO users (username, password)
+//        VALUES ($1, $2)
+//        ON CONFLICT (username) DO NOTHING`, // prevents duplicate errors
+//       [user.username, hashedPassword, user.email]
+//     );
+
+//     console.log(`Inserted: ${user.username}`);
+//   }
+
+//   console.log("Done seeding users.");
+//   process.exit(0);
+// }
+
+// seedUsers().catch(err => {
+//   console.error("Seeding failed:", err);
+//   process.exit(1);
+// });
+
 app.post("/register", async (req, res) => {
   const username = req.body.username;
   const password = req.body.password;
@@ -504,8 +542,8 @@ const server = app.listen(PORT, HOST, async () => {
 
   try{
     await processUserSongs(1);
-    await processUserSongs(2);
     await processUserSongs(3);
+    await processUserSongs(4)
     await K_clustering(1);
     //await getSpotifyId('Dancing Queen', 'ABBA');
     //await processSongById(8);
