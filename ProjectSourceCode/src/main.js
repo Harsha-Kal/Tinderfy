@@ -535,6 +535,49 @@ app.get('/api/users', async (req, res) => {
   }
 });
 
+async function matching(user1_id, user2_id){
+  const match = await db.oneOrNone(`SELECT * FROM matches 
+  WHERE (user1_id = $1 AND user2_id = $2) 
+     OR (user1_id = $2 AND user2_id = $1);`, [user1_id, user2_id]);
+  if(match)
+    //update the matched field in matches to true
+    db.none(`UPDATE matches SET matched = true 
+    WHERE (user1_id = $1 AND user2_id = $2) 
+       OR (user1_id = $2 AND user2_id = $1);`, [user1_id, user2_id]);
+  else{
+    //insert a new row in matches with matched field as false
+    db.none(`INSERT INTO matches (user1_id, user2_id, matched) 
+    VALUES ($1, $2, false);`, [user1_id, user2_id]);
+  }
+}
+
+async function returnAllMatches(user_id) {
+  const matches = await db.any(
+    `SELECT 
+        m.user1_id,
+        m.user2_id,
+        m.matched,
+        u.id AS other_user_id,
+        u.username,
+        u.name,
+        u.email,
+        u.age,
+        u.gender,
+        u.profile_picture_url
+     FROM matches m
+     JOIN users u
+        ON u.id = CASE
+                    WHEN m.user1_id = $1 THEN m.user2_id
+                    ELSE m.user1_id
+                  END
+     WHERE (m.user1_id = $1 OR m.user2_id = $1)
+       AND m.matched = TRUE;`,
+    [user_id]
+  );
+
+  return matches;
+}
+
 // Start the server
 const PORT = 3000;
 const HOST = '0.0.0.0'; // Bind to all interfaces so it's accessible from outside the container
