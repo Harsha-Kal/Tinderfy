@@ -1,28 +1,31 @@
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-6 col-lg-4">
-            <div class="card">
-                <div class="card-body">
-                    <h2 class="card-title text-center mb-4">Login</h2>
-                    {{>message}}
-                    <form method="POST" action="/login">
-                        <div class="mb-3">
-                            <label for="username" class="form-label">Username</label>
-                            <input type="text" class="form-control" name="username" id="username" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="password" class="form-label">Password</label>
-                            <input type="password" class="form-control" name="password" id="password" required>
-                        </div>
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-primary">Login</button>
-                        </div>
-                    </form>
-                    <div class="text-center mt-3">
-                        <p class="mb-0">Don't have an account? <a href="/register" class="text-decoration-none">Register</a></p>
-                    </div>
-                </div>
-            </div>
-        </div>
+<div class="home-wrapper">
+
+  <div class="home-card auth-card">
+    <h2 class="home-title">Login</h2>
+
+    {{> message}}
+
+    <form method="POST" action="/login" class="form-group-stack">
+
+      <div class="form-group">
+        <label for="username">Username</label>
+        <input type="text" name="username" id="username" required class="input-field" />
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" name="password" id="password" required class="input-field" />
+      </div>
+
+      <button type="submit" class="btn btn-main btn-full">Login</button>
+
+    </form>
+
+    <div class="text-center mt-3">
+      <p class="text-muted">
+        Don't have an account? <a href="/register" class="link-primary">Register</a>
+      </p>
     </div>
+  </div>
+
 </div>
