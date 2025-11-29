@@ -17,6 +17,8 @@ const hbs = handlebars.create({
   defaultLayout: 'main',
 });
 
+app.use(express.static(path.join(__dirname, 'css')));
+
 // database configuration
 const dbConfig = {
   host: 'db', // the database server

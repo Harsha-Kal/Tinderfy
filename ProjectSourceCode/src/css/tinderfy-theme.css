@@ -1,0 +1,166 @@
+/* Home-page wrapper: center vertically + horizontally */
+.home-wrapper {
+  flex: 1;
+  /* allows growing to available vertical space */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+/* Card styling (if you want card look similar to Match UI) */
+.home-card {
+  background: #2c3e50;
+  border-radius: 20px;
+  padding: 40px 20px;
+  color: #ecf0f1;
+  max-width: 400px;
+  width: 100%;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  text-align: center;
+}
+
+/* Title and lead text */
+.home-card h1 {
+  margin-bottom: 1rem;
+  font-size: 2.2rem;
+  color: #ecf0f1;
+}
+
+.home-card .lead {
+  margin-bottom: 2rem;
+  color: #bdc3c7;
+  font-size: 1rem;
+}
+
+/* Button group: center horizontally & evenly space */
+.btn-group-home {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* --- Custom Navbar Theme --- */
+
+.custom-navbar {
+  background-color: #2c3e50;
+  /* dark card-style background */
+  padding: 12px 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  display: flex;
+  justify-content: center;
+}
+
+.nav-container {
+  width: 100%;
+  max-width: 900px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Brand styling */
+.navbar-brand {
+  color: #2ecc71;
+  font-family: 'Arial', sans-serif;
+  font-size: 1.4rem;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+/* Links / Buttons container */
+.nav-links {
+  display: flex;
+  gap: 12px;
+}
+
+/* Buttons in Navbar */
+.nav-button {
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-family: 'Arial', sans-serif;
+  font-weight: bold;
+  font-size: 0.95rem;
+  text-decoration: none;
+  transition: transform 0.15s, box-shadow 0.15s;
+  display: inline-block;
+  text-align: center;
+}
+
+/* Filled button (e.g. login) */
+.nav-button.filled {
+  background-color: #2ecc71;
+  color: #ecf0f1;
+  border: none;
+}
+
+/* Outline button (e.g. register) */
+.nav-button.outline {
+  background: transparent;
+  color: #ecf0f1;
+  border: 2px solid #2ecc71;
+}
+
+/* Hover / interaction effects for buttons */
+.nav-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.5);
+  text-decoration: none;
+}
+
+/* Base button styling (works for <a> or <button>) */
+.nav-button,
+.btn {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 0.95rem;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+/* Filled button — primary action */
+.nav-button.filled,
+.btn.btn-main {
+  background-color: #2ecc71;
+  color: #ecf0f1;
+  border: none;
+}
+
+/* Outline / secondary button */
+.nav-button.outline,
+.btn.btn-outline {
+  background: transparent;
+  color: #ecf0f1;
+  border: 2px solid #2ecc71;
+}
+
+/* Hover / active effects */
+.nav-button.filled:hover,
+.nav-button.outline:hover,
+.btn.btn-main:hover,
+.btn.btn-outline:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+  text-decoration: none;
+}
+
+body {background-color: #2ecc71;}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  /* full viewport height */
+}
