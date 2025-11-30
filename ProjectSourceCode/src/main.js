@@ -17,7 +17,13 @@ const hbs = handlebars.create({
   defaultLayout: 'main',
 });
 
+// Serve static assets from the 'css' directory (e.g., stylesheets)
 app.use(express.static(path.join(__dirname, 'css')));
+
+// --- NEW ADDITION ---
+// Serve static HTML files from a dedicated directory (views/pages/html/)
+app.use('/html', express.static(path.join(__dirname, 'views', 'pages', 'html')));
+// --- END NEW ADDITION ---
 
 // database configuration
 const dbConfig = {
@@ -41,8 +47,7 @@ db.connect()
   });
 
 // *****************************************************
-// <!-- Section 3 : App Settings -->
-// *****************************************************
+// // *****************************************************
 
 // Register `hbs` as our view engine using its bound `engine()` function.
 app.engine('hbs', hbs.engine);
@@ -75,9 +80,38 @@ app.get("/login", (req, res) => {
 app.get("/register", (req, res) => {
   res.render('pages/register');
 });
+
+// Route with session check for home-logged-in
 app.get("/home-logged-in", (req, res) => {
+  if (!req.session.user) {
+    return res.redirect('/login');
+  }
   res.render('pages/home-logged-in', { user: req.session.user });
 });
+
+// *****************************************************
+// // *****************************************************
+app.get("/Matches", (req, res) => {
+  // Check if the user is logged in
+  if (!req.session.user) {
+    return res.redirect('/login');
+  }
+  // Serve the static HTML file using res.sendFile
+  // IMPORTANT: The path must be absolute when using res.sendFile
+  res.sendFile(path.join(__dirname, 'views', 'pages', 'Matches.html'));
+});
+
+app.get("/Account_info", (req, res) => {
+  // Check if the user is logged in
+  if (!req.session.user) {
+    return res.redirect('/login');
+  }
+  // Serve the static HTML file using res.sendFile
+  // IMPORTANT: The path must be absolute when using res.sendFile
+  res.sendFile(path.join(__dirname, 'views', 'pages', 'Account_info.html'));
+});
+
+
 const testUsers = [
   {username: "user1", password: "password1"},
   {username: "user2", password: "password2"},
@@ -90,31 +124,6 @@ const testUsers = [
   {username: "user9", password: "password9"},
   {username: "user10", password: "password10"}
 ];
-
-// async function seedUsers() {
-//   console.log("Seeding test users…");
-
-//   for (const user of testUsers) {
-//     const hashedPassword = await bcrypt.hash(user.password, 10);
-
-//     await db.none(
-//       `INSERT INTO users (username, password)
-//        VALUES ($1, $2)
-//        ON CONFLICT (username) DO NOTHING`, // prevents duplicate errors
-//       [user.username, hashedPassword, user.email]
-//     );
-
-//     console.log(`Inserted: ${user.username}`);
-//   }
-
-//   console.log("Done seeding users.");
-//   process.exit(0);
-// }
-
-// seedUsers().catch(err => {
-//   console.error("Seeding failed:", err);
-//   process.exit(1);
-// });
 
 app.post("/register", async (req, res) => {
   const username = req.body.username;
@@ -173,12 +182,6 @@ app.post("/login", async (req, res) => {
   }
 });
 
-app.get("/home-logged-in", (req, res) => {
-  if (!req.session.user) {
-    return res.redirect('/login');
-  }
-  res.render('pages/home-logged-in', { user: req.session.user });
-});
 
 //destroy session when logout button is clicked
 app.get("/logout", (req, res) => {
@@ -201,12 +204,6 @@ app.get("/account-custom", (req, res) => {
 
 app.post("/account-custom", async (req, res) => {
   const { username, password, name, email, age, gender } = req.body;
-  // const name = req.name;
-  // const username = req.username;
-  // const password = req.password;
-  // const email = req.email;
-  // const age = req.age;
-  // const gender = req.gender;
   const hash = await bcrypt.hash(password, 10);
   const query = `
     INSERT INTO users (username, password, name, email, age, gender)
@@ -224,8 +221,6 @@ app.post("/account-custom", async (req, res) => {
     res.render('pages/account-custom', { message: "Error creating profile.", error: true });
   }
 });
-
-
 
 
 //Lab 10 Dummy Endpoint
@@ -493,12 +488,12 @@ function normalizeFeatures(features){
 
 // //endpoint for clustering
 // app.post('/api/cluster', async (req, res) => {
-//   const k = 5
-//   const result = await K_clustering(k);
-//   res.json({
-//     success: result !== null,
-//     message: result ? `Clustered users into ${k} clusters` : `Clustering failed`
-//   })
+//   const k = 5
+//   const result = await K_clustering(k);
+//   res.json({
+//     success: result !== null,
+//     message: result ? `Clustered users into ${k} clusters` : `Clustering failed`
+//   })
 // })
 
 //endpoint to debug backend work
@@ -540,12 +535,12 @@ app.get('/api/users', async (req, res) => {
 async function matching(user1_id, user2_id){
   const match = await db.oneOrNone(`SELECT * FROM matches 
   WHERE (user1_id = $1 AND user2_id = $2) 
-     OR (user1_id = $2 AND user2_id = $1);`, [user1_id, user2_id]);
+    OR (user1_id = $2 AND user2_id = $1);`, [user1_id, user2_id]);
   if(match)
     //update the matched field in matches to true
     db.none(`UPDATE matches SET matched = true 
     WHERE (user1_id = $1 AND user2_id = $2) 
-       OR (user1_id = $2 AND user2_id = $1);`, [user1_id, user2_id]);
+      OR (user1_id = $2 AND user2_id = $1);`, [user1_id, user2_id]);
   else{
     //insert a new row in matches with matched field as false
     db.none(`INSERT INTO matches (user1_id, user2_id, matched) 
@@ -556,22 +551,22 @@ async function matching(user1_id, user2_id){
 async function returnAllMatches(user_id) {
   const matches = await db.any(
     `SELECT 
-        m.user1_id,
-        m.user2_id,
-        m.matched,
-        u.id AS other_user_id,
-        u.username,
-        u.name,
-        u.email,
-        u.age,
-        u.gender,
-        u.profile_picture_url
+      m.user1_id,
+      m.user2_id,
+      m.matched,
+      u.id AS other_user_id,
+      u.username,
+      u.name,
+      u.email,
+      u.age,
+      u.gender,
+      u.profile_picture_url
      FROM matches m
      JOIN users u
-        ON u.id = CASE
-                    WHEN m.user1_id = $1 THEN m.user2_id
-                    ELSE m.user1_id
-                  END
+       ON u.id = CASE
+                  WHEN m.user1_id = $1 THEN m.user2_id
+                  ELSE m.user1_id
+                END
      WHERE (m.user1_id = $1 OR m.user2_id = $1)
        AND m.matched = TRUE;`,
     [user_id]
