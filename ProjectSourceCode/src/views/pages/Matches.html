@@ -298,30 +298,72 @@
          */
         async function fetchNextProfile() {
             try {
-                // 1. CALL YOUR BACKEND API HERE
                 const response = await fetch('/api/match/next');
 
+                // Handle 204 No Content (no more profiles available)
+                if (response.status === 204) {
+                    const data = await response.json().catch(() => ({ message: "No more profiles available. Check back later!" }));
+                    showNoMoreUsersMessage(data.message || "No more profiles available. Check back later!");
+                    return;
+                }
+
                 if (!response.ok) {
-                    // If status is 204 No Content (meaning no more profiles), handle gracefully
-                    if (response.status === 204) {
-                        throw new Error("No more profiles to show.");
+                    if (response.status === 401) {
+                        window.location.href = '/login';
+                        return;
                     }
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 
                 const profileData = await response.json();
                 
+                // Check if there's an error message in the response
+                if (profileData.error) {
+                    throw new Error(profileData.error);
+                }
+                
                 // Assuming profileData is structured like: 
                 // { id: 1, name: "...", age: 25, location: "...", bio: "...", photoUrl: "...", matchScore: "85%", hobbies: ["...", "..."], likedSongs: ["...", "..."] }
                 renderProfile(profileData);
             } catch (error) {
                 console.error("Error fetching next profile:", error);
-                // Display an error message to the user
-                document.querySelector('.user-info h2').textContent = error.message.includes("No more profiles") ? "No Profiles Left" : "Error Loading Profiles";
-                document.querySelector('.bio p').textContent = error.message;
-                // Disable buttons
-                document.querySelector('.actions').style.pointerEvents = 'none';
+                
+                // Check if it's a "no more users" type message
+                if (error.message.includes("No more") || error.message.includes("Check back later") || error.message.includes("no more profiles")) {
+                    showNoMoreUsersMessage("No more profiles available. Check back later!");
+                } else if (error.message.includes("complete your profile")) {
+                    showNoMoreUsersMessage("Please complete your profile to start matching.");
+                } else {
+                    // Display an error message to the user
+                    document.querySelector('.user-info h2').textContent = "Error Loading Profiles";
+                    document.querySelector('.bio p').textContent = error.message || "An error occurred. Please try again.";
+                    // Disable buttons
+                    document.querySelector('.actions').style.pointerEvents = 'none';
+                }
             }
+        }
+
+        /**
+         * Displays a message when no more users are available
+         */
+        function showNoMoreUsersMessage(message) {
+            // Clear current profile
+            currentProfileId = null;
+            
+            // Update the card to show the message
+            document.querySelector('.user-photo').style.backgroundImage = 'url("data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7")';
+            document.querySelector('.match-score').innerHTML = '';
+            document.querySelector('.user-info h2').textContent = "No More Matches";
+            document.querySelector('.user-info p').textContent = '';
+            document.querySelector('.bio p').textContent = message;
+            
+            // Clear hobbies and songs
+            document.getElementById('hobbies-tags').innerHTML = '';
+            document.getElementById('songs-tags').innerHTML = '';
+            
+            // Disable buttons
+            document.querySelector('.actions').style.pointerEvents = 'none';
+            document.querySelector('.actions').style.opacity = '0.5';
         }
 
         /**

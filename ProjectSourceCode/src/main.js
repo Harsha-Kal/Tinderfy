@@ -554,11 +554,27 @@ app.get('/api/profile', async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
     
-    // Return user data (only username and name for now as requested)
+    // Get user's liked songs from users_to_songs table
+    const likedSongs = await db.any(`
+      SELECT s.title, s.artist
+      FROM songs s
+      JOIN users_to_songs uts ON s.id = uts.song_id
+      WHERE uts.user_id = $1
+      ORDER BY uts.id
+    `, [user.id]);
+    
+    // Format songs as comma-separated string: "Title by Artist, Title 2 by Artist 2"
+    const likedSongsString = likedSongs
+      .map(song => song.title && song.artist ? `${song.title} by ${song.artist}` : `${song.title || song.artist || ''}`)
+      .filter(song => song.length > 0)
+      .join(', ');
+    
+    // Return user data including liked songs
     res.json({
       id: user.id,
       username: user.username,
-      name: user.name
+      name: user.name,
+      liked_songs: likedSongsString || ''
     });
   } catch (err) {
     console.error('Error fetching profile:', err);
@@ -662,6 +678,171 @@ async function returnAllMatches(user_id) {
 
   return matches;
 }
+
+// GET /api/match/next - Fetch next user with same cluster_id
+app.get('/api/match/next', async (req, res) => {
+  // Check if the user is logged in
+  if (!req.session.user) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+  
+  const loggedInUserId = req.session.user.id;
+  
+  try {
+    // First, get the logged-in user's cluster_id
+    const currentUser = await db.oneOrNone(
+      'SELECT cluster_id FROM users WHERE id = $1',
+      [loggedInUserId]
+    );
+    
+    if (!currentUser || currentUser.cluster_id === null) {
+      return res.status(204).json({ message: "Please complete your profile to start matching." });
+    }
+    
+    const clusterId = currentUser.cluster_id;
+    
+    // Get all users with the same cluster_id that haven't been matched/disliked yet
+    // Exclude: current user, users already in matches table with current user
+    const availableUsers = await db.any(`
+      SELECT u.id, u.username, u.name, u.age, u.gender, u.profile_picture_url, u.email
+      FROM users u
+      WHERE u.cluster_id = $1
+        AND u.id != $2
+        AND NOT EXISTS (
+          SELECT 1 FROM matches m
+          WHERE ((m.user1_id = $2 AND m.user2_id = u.id)
+             OR (m.user2_id = $2 AND m.user1_id = u.id))
+        )
+      ORDER BY u.id
+      LIMIT 1
+    `, [clusterId, loggedInUserId]);
+    
+    if (availableUsers.length === 0) {
+      return res.status(204).json({ message: "No more profiles available. Check back later!" });
+    }
+    
+    const user = availableUsers[0];
+    
+    // Debug logging to see what data we're getting
+    console.log('User data from database:', {
+      id: user.id,
+      username: user.username,
+      name: user.name,
+      age: user.age,
+      email: user.email
+    });
+    
+    // Get user's liked songs from users_to_songs table
+    const likedSongs = await db.any(`
+      SELECT s.title, s.artist
+      FROM songs s
+      JOIN users_to_songs uts ON s.id = uts.song_id
+      WHERE uts.user_id = $1
+      LIMIT 5
+    `, [user.id]);
+    
+    // Format songs as array of strings
+    const likedSongsArray = likedSongs.map(song => 
+      song.title && song.artist ? `${song.title} by ${song.artist}` : `${song.title || song.artist || ''}`
+    );
+    
+    // Calculate match score (100% if same cluster)
+    const matchScore = "100%";
+    
+    // Determine display name - prefer name, fallback to username, then Anonymous
+    // Handle null, undefined, and empty strings properly
+    const userName = user.name && typeof user.name === 'string' && user.name.trim() ? user.name.trim() : null;
+    const userUsername = user.username && typeof user.username === 'string' && user.username.trim() ? user.username.trim() : null;
+    
+    const displayName = userName || userUsername || 'Anonymous';
+    const displayNameForBio = userName || userUsername || 'Music enthusiast';
+    
+    console.log('Display name resolved to:', displayName, '(from name:', userName, ', username:', userUsername, ')');
+    
+    // Build profile object matching what the frontend expects
+    const profile = {
+      id: user.id,
+      name: displayName,
+      age: user.age || '?',
+      location: user.location || 'Location not set',
+      bio: `Hey! I'm ${displayNameForBio}. Music connects us! 🎵`,
+      photoUrl: user.profile_picture_url || null,
+      matchScore: matchScore,
+      hobbies: [], // Empty array for now since not stored in DB
+      likedSongs: likedSongsArray.length > 0 ? likedSongsArray : ['No songs added yet']
+    };
+    
+    console.log('Final profile object:', JSON.stringify(profile, null, 2));
+    
+    res.json(profile);
+  } catch (err) {
+    console.error('Error fetching next match:', err);
+    res.status(500).json({ error: "Error loading matches. Please try again." });
+  }
+});
+
+// POST /api/match/rate - Record like/dislike action
+app.post('/api/match/rate', async (req, res) => {
+  // Check if the user is logged in
+  if (!req.session.user) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+  
+  const loggedInUserId = req.session.user.id;
+  const { profileId, rating } = req.body;
+  
+  if (!profileId || !rating) {
+    return res.status(400).json({ error: "profileId and rating are required" });
+  }
+  
+  if (rating !== 'like' && rating !== 'dislike') {
+    return res.status(400).json({ error: "rating must be 'like' or 'dislike'" });
+  }
+  
+  try {
+    // Ensure user1_id < user2_id for consistent ordering
+    const user1_id = Math.min(loggedInUserId, profileId);
+    const user2_id = Math.max(loggedInUserId, profileId);
+    
+    // Check if match already exists
+    const existingMatch = await db.oneOrNone(`
+      SELECT * FROM matches 
+      WHERE user1_id = $1 AND user2_id = $2
+    `, [user1_id, user2_id]);
+    
+    if (existingMatch) {
+      // Update existing match
+      if (rating === 'like') {
+        // If it's a like, set matched to true if both liked each other
+        // For now, just update the match record
+        await db.none(`
+          UPDATE matches 
+          SET matched = $1
+          WHERE user1_id = $2 AND user2_id = $3
+        `, [rating === 'like', user1_id, user2_id]);
+      } else {
+        // Dislike - ensure matched is false
+        await db.none(`
+          UPDATE matches 
+          SET matched = false
+          WHERE user1_id = $1 AND user2_id = $2
+        `, [user1_id, user2_id]);
+      }
+    } else {
+      // Create new match record
+      // matched = true only if it's a like (for now, we could make it mutual later)
+      await db.none(`
+        INSERT INTO matches (user1_id, user2_id, matched)
+        VALUES ($1, $2, $3)
+      `, [user1_id, user2_id, rating === 'like']);
+    }
+    
+    res.json({ success: true, message: `User ${rating} recorded successfully` });
+  } catch (err) {
+    console.error('Error recording rating:', err);
+    res.status(500).json({ error: "Error recording rating. Please try again." });
+  }
+});
 
 // Start the server
 const PORT = 3000;
