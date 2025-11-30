@@ -6,7 +6,6 @@
     <title>Tinderfy Profile Editor</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         /* Primary Green Accent Color: #2D9B59 */
@@ -55,36 +54,49 @@
             background-color: rgba(153, 27, 27, 0.5);
             color: #fff;
         }
+
+        /* Styles for the Modal */
+        .modal-overlay {
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 50;
+        }
+        .modal-content {
+            z-index: 51;
+        }
     </style>
 </head>
 <body class="p-4 sm:p-8 min-h-screen">
 
     <div id="app" class="max-w-4xl mx-auto">
-        <header class="text-center mb-10">
-            <!-- UPDATED: Changed text color to white for contrast against the vibrant green background -->
-            <h1 class="text-4xl font-extrabold text-white tracking-tight">Your Tinderfy Profile</h1>
-            <!-- Updated description text color to a darker gray -->
-            <p class="text-gray-700 mt-2">Edit your Tinderfy profile details. Your music taste is the key!</p>
-        </header>
+        
+        <div class="flex flex-col sm:flex-row justify-between items-center mb-10">
+            <header class="text-center sm:text-left mb-4 sm:mb-0">
+                <h1 class="text-4xl font-extrabold text-white tracking-tight">Your Tinderfy Profile</h1>
+                <p class="text-gray-700 mt-2">Edit your Tinderfy profile details. Your music taste is the key!</p>
+            </header>
 
-        <!-- Loading & Status Messages -->
+            <a href="/Matches" class="accent-button px-6 py-3 rounded-xl text-lg font-bold text-white shadow-xl hover:scale-[1.05] transition duration-150 flex items-center">
+                <i class="fas fa-heartbeat mr-2"></i> Find My Matches
+            </a>
+        </div>
+
+
         <div id="statusMessage" class="p-3 mb-4 rounded-lg text-center font-medium hidden"></div>
 
-        <!-- 
-            PAGE 1: PROFILE EDITOR (Initial View)
-        -->
         <div id="profileFormContainer" class="profile-card p-6 sm:p-10 rounded-xl shadow-2xl space-y-8">
             <div id="authStatus" class="text-sm text-gray-500 mb-6">
                 <i class="fas fa-user-circle mr-2"></i> User ID: <span id="userIdDisplay" class="font-mono text-xs">Loading...</span>
             </div>
 
-            <!-- Profile Photo & Basic Info -->
             <section class="flex flex-col md:flex-row items-center space-y-6 md:space-y-0 md:space-x-8 pb-8 border-b border-gray-300">
                 <div class="flex-shrink-0">
-                    <div class="w-32 h-32 bg-gray-200 rounded-full overflow-hidden flex items-center justify-center border-4 border-[#1D7E45]">
-                        <i class="fas fa-camera text-4xl text-gray-500"></i>
-                    </div>
-                    <p class="text-xs text-center mt-2 text-gray-500">Photo URL (Simulated)</p>
+                    <input type="file" id="profilePhoto" accept="image/*" class="hidden">
+                    
+                    <label for="profilePhoto" id="photoUploadButton" class="w-32 h-32 bg-gray-200 rounded-full overflow-hidden flex items-center justify-center border-4 border-[#1D7E45] cursor-pointer hover:border-[#4ACF78] transition duration-150 relative">
+                        <i class="fas fa-camera text-4xl text-gray-500" id="photoIcon"></i>
+                        <img id="photoPreview" class="absolute w-full h-full object-cover hidden" src="" alt="Profile Preview">
+                    </label>
+                    <p class="text-xs text-center mt-2 text-gray-500">Click to upload photo</p>
                 </div>
                 <div class="flex-grow space-y-4 w-full">
                     <div>
@@ -104,7 +116,6 @@
                 </div>
             </section>
 
-            <!-- Bio and Location -->
             <section class="space-y-4">
                 <div>
                     <label for="bio" class="block text-sm font-medium mb-1">About Me / Bio (Max 200 chars)</label>
@@ -128,42 +139,36 @@
                 </div>
             </section>
 
-            <!-- Hobbies & Interests -->
             <section class="space-y-4">
                 <h2 class="text-2xl font-semibold text-gray-800 border-b border-gray-300 pb-2">Interests</h2>
                 <div>
                     <label for="hobbies" class="block text-sm font-medium mb-1">Hobbies (Comma Separated)</label>
                     <input type="text" id="hobbies" placeholder="Hiking, Cooking, Gaming, Reading" class="input-field w-full p-3 rounded-lg">
                     <div id="hobbiesDisplay" class="mt-2 flex flex-wrap gap-2 text-sm">
-                        <!-- Hobby tags will be injected here -->
-                    </div>
+                        </div>
                 </div>
             </section>
 
-            <!-- Liked Songs (Core Matching Feature) -->
             <section class="space-y-4">
                 <div class="flex justify-between items-center border-b border-gray-300 pb-2">
                     <h2 class="text-2xl font-semibold text-gray-800 flex items-center">
                         <i class="fas fa-music mr-2 text-[#2D9B59]"></i> Liked Songs
                     </h2>
-                    <!-- Button to switch view to the full list -->
-                    <button onclick="goToLikedSongsPage()" class="text-sm font-semibold px-3 py-1 rounded-full bg-[#2D9B59] text-white shadow-md hover:opacity-90 transition duration-150 flex items-center">
-                        View Full List <i class="fas fa-chevron-right text-xs ml-2"></i>
-                    </button>
                 </div>
                 <p class="text-xs text-gray-600 -mt-2">Crucial for Matching</p>
-                <div>
-                    <label for="likedSongs" class="block text-sm font-medium mb-1">Your 5 Favorite Songs/Artists (Comma Separated)</label>
-                    <textarea id="likedSongs" rows="3" placeholder="Song 1 by Artist A, Song 2 by Artist B, Artist C - Track Title" class="textarea-field w-full p-3 rounded-lg"></textarea>
-                    <!-- Help text updated to dark gray -->
-                    <p class="text-xs text-gray-600 mt-1">These are used to find your perfect match!</p>
-                    <div id="songsDisplay" class="mt-2 flex flex-wrap gap-2 text-sm">
-                        <!-- Song tags will be injected here -->
+                
+                <button onclick="openSongModal()" class="accent-button px-4 py-2 rounded-lg font-bold text-white shadow-md hover:opacity-90 transition duration-150 flex items-center">
+                    <i class="fas fa-plus mr-2"></i> Add Song
+                </button>
+
+                <div id="currentSongsDisplay" class="mt-4 space-y-2">
                     </div>
-                </div>
+                
+                <button onclick="goToLikedSongsPage()" class="text-sm font-semibold px-3 py-1 rounded-full bg-[#2D9B59] text-white shadow-md hover:opacity-90 transition duration-150 flex items-center mt-4">
+                    View Full List <i class="fas fa-chevron-right text-xs ml-2"></i>
+                </button>
             </section>
 
-            <!-- Password & Security (Simulated) -->
             <section class="space-y-4 pt-8 border-t border-gray-300">
                 <h2 class="text-2xl font-semibold text-gray-800 border-b border-gray-300 pb-2">Security</h2>
                 <div>
@@ -172,22 +177,22 @@
                     <button onclick="changePassword(event)" class="accent-button mt-3 w-full sm:w-auto px-6 py-2 rounded-lg font-bold text-white shadow-md">
                         Change Password
                     </button>
-                    <!-- Password message updated for readability on white card -->
                     <p id="passwordMessage" class="text-xs mt-2 text-red-600"></p>
                 </div>
             </section>
 
-            <!-- Save Button -->
-            <div class="pt-8">
+            <!-- Save & Logout Buttons -->
+            <div class="pt-8 space-y-4">
                 <button id="saveButton" onclick="saveProfile()" class="accent-button w-full px-8 py-4 rounded-xl text-lg font-extrabold text-white shadow-xl hover:scale-[1.01]">
                     <i class="fas fa-save mr-2"></i> Save Profile
                 </button>
+                <!-- 1. LOGOUT BUTTON ADDED HERE -->
+                <a href="/logout" class="block text-center w-full px-8 py-3 rounded-xl text-base font-bold text-gray-700 bg-gray-200 hover:bg-gray-300 transition duration-150">
+                    <i class="fas fa-sign-out-alt mr-2"></i> Log Out
+                </a>
             </div>
         </div>
 
-        <!-- 
-            PAGE 2: LIKED SONGS VIEWER (Initially Hidden)
-        -->
         <div id="likedSongsPage" class="profile-card p-6 sm:p-10 rounded-xl shadow-2xl space-y-8 hidden">
             <button onclick="backToProfile()" class="text-sm font-bold text-[#2D9B59] mb-6 flex items-center hover:text-[#1D7E45]">
                 <i class="fas fa-arrow-left mr-2"></i> Back to Profile Editor
@@ -197,126 +202,108 @@
                 <i class="fas fa-list-ul mr-2 text-[#2D9B59]"></i> Your Complete Music Vibe List
             </h2>
 
-            <p class="text-gray-600 mb-6">This is the full list of songs and artists you've added to your profile. We use these to find your most compatible matches!</p>
+            <p class="text-gray-600 mb-6">This list is generated from the songs you entered, separating the title and artist for clarity.</p>
             
-            <div id="fullSongsList" class="space-y-4">
-                <!-- Dynamic song list items will be injected here -->
+            <div class="grid grid-cols-12 font-bold text-sm text-gray-700 border-b border-gray-300 pb-2">
+                <div class="col-span-1">#</div>
+                <div class="col-span-5">Song Title</div>
+                <div class="col-span-6">Artist Name</div>
             </div>
+
+            <div id="fullSongsList" class="space-y-2">
+                </div>
 
             <button onclick="backToProfile()" class="accent-button w-full sm:w-1/2 mx-auto mt-10 px-8 py-3 rounded-xl text-lg font-extrabold text-white shadow-xl hover:scale-[1.01]">
                 <i class="fas fa-edit mr-2"></i> Edit Profile
             </button>
         </div>
     </div>
+    
+    <div id="songModal" class="modal-overlay fixed inset-0 flex items-center justify-center hidden">
+        <div class="modal-content profile-card w-11/12 md:w-1/3 p-6 rounded-xl shadow-2xl space-y-6">
+            <h3 class="text-2xl font-bold text-gray-800 border-b border-gray-300 pb-2">Add a Favorite Song</h3>
+            
+            <div>
+                <label for="modalSongTitle" class="block text-sm font-medium mb-1">Song Name</label>
+                <input type="text" id="modalSongTitle" placeholder="Bohemian Rhapsody" class="input-field w-full p-3 rounded-lg">
+            </div>
 
-    <!-- Firebase SDK Imports -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+            <div>
+                <label for="modalArtistName" class="block text-sm font-medium mb-1">Artist Name</label>
+                <input type="text" id="modalArtistName" placeholder="Queen" class="input-field w-full p-3 rounded-lg">
+            </div>
 
-        // Set Firebase Log Level to Debug
-        setLogLevel('Debug');
+            <div id="modalError" class="text-red-500 text-sm hidden">Please enter either a song title or an artist name.</div>
 
-        // Global Firebase variables
-        let app;
-        let db;
-        let auth;
-        let userId = null;
-        let isAuthReady = false;
+            <div class="flex justify-end space-x-4 pt-4">
+                <button onclick="closeSongModal()" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg font-semibold hover:bg-gray-300">
+                    Cancel
+                </button>
+                <button onclick="addSongFromModal()" class="accent-button px-4 py-2 rounded-lg font-bold text-white shadow-md">
+                    Add to List
+                </button>
+            </div>
+        </div>
+    </div>
 
+    <script>
         // Global variable exposure for onclick handlers
         window.saveProfile = saveProfile;
         window.changePassword = changePassword;
         window.updateTagDisplays = updateTagDisplays;
         window.goToLikedSongsPage = goToLikedSongsPage;
-        window.backToProfile = backToProfile; // NEW: Expose the back function
+        window.backToProfile = backToProfile;
+        window.openSongModal = openSongModal;
+        window.closeSongModal = closeSongModal;
+        window.addSongFromModal = addSongFromModal;
+        window.removeSong = removeSong;
 
-        // --- Configuration & Initialization ---
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-dating-app';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
+        // --- DATA STATE ---
+        let likedSongsArray = []; // Stores objects: [{title: "...", artist: "..."}, ...]
+
+
+        // --- DOM Elements ---
         const STATUS_MESSAGE = document.getElementById('statusMessage');
         const USER_ID_DISPLAY = document.getElementById('userIdDisplay');
         const HOBBIES_DISPLAY = document.getElementById('hobbiesDisplay');
-        const SONGS_DISPLAY = document.getElementById('songsDisplay');
         const SAVE_BUTTON = document.getElementById('saveButton');
-        
-        // NEW Page elements
         const PROFILE_CONTAINER = document.getElementById('profileFormContainer');
         const SONGS_PAGE = document.getElementById('likedSongsPage');
         const FULL_SONGS_LIST = document.getElementById('fullSongsList');
+        const CURRENT_SONGS_DISPLAY = document.getElementById('currentSongsDisplay');
+        const HOBBIES_INPUT = document.getElementById('hobbies');
+
+        // --- PHOTO ELEMENTS ---
+        const PHOTO_INPUT = document.getElementById('profilePhoto');
+        const PHOTO_PREVIEW = document.getElementById('photoPreview');
+        const PHOTO_ICON = document.getElementById('photoIcon');
+
+        // --- MODAL ELEMENTS ---
+        const SONG_MODAL = document.getElementById('songModal');
+        const MODAL_TITLE = document.getElementById('modalSongTitle');
+        const MODAL_ARTIST = document.getElementById('modalArtistName');
+        const MODAL_ERROR = document.getElementById('modalError');
 
 
+        // --- Utility Functions ---
         function displayMessage(message, isError = false) {
             STATUS_MESSAGE.textContent = message;
             STATUS_MESSAGE.classList.remove('hidden', 'bg-red-900\/50', 'bg-green-900\/50');
             if (isError) {
                 STATUS_MESSAGE.classList.add('bg-red-900\/50');
             } else {
-                // Using the custom class defined in style block for green status
                 STATUS_MESSAGE.classList.add('bg-green-900\/50');
             }
-            // Reset pre-wrap style for normal messages
             STATUS_MESSAGE.style.whiteSpace = 'normal'; 
             setTimeout(() => {
                 STATUS_MESSAGE.classList.add('hidden');
             }, 5000);
         }
 
-        async function initFirebase() {
-            if (!firebaseConfig) {
-                console.error("Firebase config is missing.");
-                displayMessage("Configuration error. Cannot initialize Firebase.", true);
-                return;
-            }
-
-            try {
-                app = initializeApp(firebaseConfig);
-                auth = getAuth(app);
-                db = getFirestore(app);
-
-                // Authentication Listener
-                onAuthStateChanged(auth, async (user) => {
-                    if (user) {
-                        userId = user.uid;
-                    } else {
-                        // Attempt to sign in if token is available
-                        if (initialAuthToken) {
-                            await signInWithCustomToken(auth, initialAuthToken);
-                            userId = auth.currentUser.uid;
-                        } else {
-                            // Fallback to anonymous sign-in
-                            const anonUser = await signInAnonymously(auth);
-                            userId = anonUser.user.uid;
-                        }
-                    }
-
-                    if (userId) {
-                        USER_ID_DISPLAY.textContent = userId;
-                        isAuthReady = true;
-                        startRealtimeListener();
-                    } else {
-                        console.error("Failed to determine user ID.");
-                        displayMessage("Authentication failed.", true);
-                    }
-                });
-            } catch (error) {
-                console.error("Firebase initialization failed:", error);
-                displayMessage("Firebase initialization failed: " + error.message, true);
-            }
-        }
-
-        function getProfileDocRef() {
-            // Private data path: /artifacts/{appId}/users/{userId}/profile_data/user_profile
-            return doc(db, 'artifacts', appId, 'users', userId, 'profile_data', 'user_profile');
-        }
-
         function updateTagDisplays() {
-            const hobbiesInput = document.getElementById('hobbies').value.trim();
-            const songsInput = document.getElementById('likedSongs').value.trim();
+            // This function is now only used for Hobbies
+            const hobbiesInput = HOBBIES_INPUT.value.trim();
 
             const renderTags = (container, listString, iconClass) => {
                 container.innerHTML = '';
@@ -332,60 +319,215 @@
             };
 
             renderTags(HOBBIES_DISPLAY, hobbiesInput, 'fas fa-tag');
-            renderTags(SONGS_DISPLAY, songsInput, 'fas fa-compact-disc');
         }
 
         // Add input listeners to update tags dynamically
-        document.getElementById('hobbies').addEventListener('input', updateTagDisplays);
-        document.getElementById('likedSongs').addEventListener('input', updateTagDisplays);
-
-        // --- Real-time Data Listener ---
-        function startRealtimeListener() {
-            if (!isAuthReady || !db) return;
-
-            const profileRef = getProfileDocRef();
-
-            try {
-                onSnapshot(profileRef, (docSnap) => {
-                    if (docSnap.exists()) {
-                        const data = docSnap.data();
-                        console.log("Current data:", data);
-
-                        // Populate form fields
-                        document.getElementById('name').value = data.name || '';
-                        document.getElementById('dob').value = data.dob || '';
-                        document.getElementById('username').value = data.username || '';
-                        document.getElementById('bio').value = data.bio || '';
-                        document.getElementById('location').value = data.location || '';
-                        document.getElementById('gender').value = data.gender || '';
-                        document.getElementById('hobbies').value = Array.isArray(data.hobbies) ? data.hobbies.join(', ') : (data.hobbies || '');
-                        document.getElementById('likedSongs').value = Array.isArray(data.likedSongs) ? data.likedSongs.join(', ') : (data.likedSongs || '');
-
-                        updateTagDisplays(); // Re-render tags after loading data
-                        displayMessage("Profile data loaded successfully!", false);
-
-                    } else {
-                        console.log("No profile data found. Starting fresh.");
-                        displayMessage("Welcome! Time to create your dating profile.", false);
-                    }
-                }, (error) => {
-                    console.error("Firestore snapshot error:", error);
-                    displayMessage("Error retrieving profile data: " + error.message, true);
-                });
-            } catch (error) {
-                console.error("Failed to set up listener:", error);
-                displayMessage("Failed to set up listener: " + error.message, true);
+        HOBBIES_INPUT.addEventListener('input', updateTagDisplays);
+        
+        // --- Image Preview Logic ---
+        PHOTO_INPUT.addEventListener('change', function() {
+            const file = this.files[0];
+            
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    PHOTO_PREVIEW.src = e.target.result;
+                    PHOTO_ICON.classList.add('hidden');
+                    PHOTO_PREVIEW.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            } else {
+                PHOTO_ICON.classList.remove('hidden');
+                PHOTO_PREVIEW.classList.add('hidden');
+                PHOTO_PREVIEW.src = '';
             }
+        });
+
+        // --- MODAL LOGIC ---
+        function openSongModal() {
+            SONG_MODAL.classList.remove('hidden');
+            MODAL_TITLE.value = '';
+            MODAL_ARTIST.value = '';
+            MODAL_ERROR.classList.add('hidden');
+            MODAL_TITLE.focus();
         }
 
+        function closeSongModal() {
+            SONG_MODAL.classList.add('hidden');
+        }
 
-        // --- Save Functionality ---
-        async function saveProfile() {
-            if (!isAuthReady || !db) {
-                displayMessage("Authentication not ready. Please wait.", true);
+        function addSongFromModal() {
+            const title = MODAL_TITLE.value.trim();
+            const artist = MODAL_ARTIST.value.trim();
+
+            if (!title && !artist) {
+                MODAL_ERROR.textContent = "Please enter either a song title or an artist name.";
+                MODAL_ERROR.classList.remove('hidden');
                 return;
             }
 
+            likedSongsArray.push({ title: title || 'N/A', artist: artist || 'N/A' });
+            renderCurrentSongs();
+            closeSongModal();
+        }
+
+        function removeSong(index) {
+            likedSongsArray.splice(index, 1);
+            renderCurrentSongs();
+        }
+
+        function renderCurrentSongs() {
+            CURRENT_SONGS_DISPLAY.innerHTML = '';
+            if (likedSongsArray.length === 0) {
+                CURRENT_SONGS_DISPLAY.innerHTML = '<p class="text-gray-500 text-sm italic">No songs added yet.</p>';
+                return;
+            }
+
+            likedSongsArray.forEach((song, index) => {
+                const songElement = document.createElement('div');
+                songElement.className = 'flex justify-between items-center p-3 bg-gray-100 rounded-lg shadow-sm';
+                songElement.innerHTML = `
+                    <div class="flex-grow min-w-0">
+                        <p class="font-semibold text-gray-800 truncate">${song.title}</p>
+                        <p class="text-sm text-gray-600 truncate">${song.artist}</p>
+                    </div>
+                    <button onclick="removeSong(${index})" class="text-red-500 hover:text-red-700 transition duration-150 ml-4 p-1">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+                CURRENT_SONGS_DISPLAY.appendChild(songElement);
+            });
+        }
+
+
+        // --- Core Parsing Logic for Song List ---
+        // This is now simplified as we handle structured data, but kept for the list view
+        function parseSongArtist(songObj) {
+            return { title: songObj.title, artist: songObj.artist };
+        }
+
+        // --- Function to display the song list with two columns ---
+        function goToLikedSongsPage() {
+            
+            PROFILE_CONTAINER.classList.add('hidden');
+            SONGS_PAGE.classList.remove('hidden');
+
+            FULL_SONGS_LIST.innerHTML = ''; // Clear existing list
+            
+            if (likedSongsArray.length > 0) {
+                likedSongsArray.forEach((songObj, index) => {
+                    const { title, artist } = parseSongArtist(songObj); // Use the stored object
+
+                    const listItem = document.createElement('div');
+                    // Use grid-cols-12 for the two-column layout
+                    listItem.className = 'grid grid-cols-12 p-3 bg-gray-50 rounded-lg shadow-sm items-center text-sm';
+                    
+                    listItem.innerHTML = `
+                        <div class="col-span-1 font-semibold text-[#2D9B59]">${index + 1}.</div>
+                        <div class="col-span-5 font-medium text-gray-800 truncate">${title}</div>
+                        <div class="col-span-6 text-gray-600 truncate">${artist}</div>
+                    `;
+                    FULL_SONGS_LIST.appendChild(listItem);
+                });
+            } else {
+                FULL_SONGS_LIST.innerHTML = `
+                    <div class="p-6 text-center border-2 border-dashed border-gray-300 rounded-xl">
+                        <i class="fas fa-exclamation-circle text-3xl text-gray-500 mb-3"></i>
+                        <p class="text-gray-700 font-semibold">No songs added yet!</p>
+                        <p class="text-gray-500 text-sm mt-1">Go back to the profile editor and list your favorite music.</p>
+                    </div>
+                `;
+            }
+            
+            STATUS_MESSAGE.classList.add('hidden');
+        }
+
+
+        // --- Fetch Data from SQL via Server ---
+
+        /**
+         * Converts the comma-separated liked_songs string from the DB into an array of objects.
+         */
+        function hydrateSongsArray(rawString) {
+            const songs = [];
+            if (!rawString) return songs;
+
+            const rawList = rawString.split(',').map(s => s.trim()).filter(s => s.length > 0);
+            
+            rawList.forEach(item => {
+                // Attempt to parse based on our old separator logic for loading from DB
+                const byIndex = item.lastIndexOf(' by ');
+                const dashIndex = item.lastIndexOf(' - ');
+                let title, artist;
+
+                if (byIndex > dashIndex) {
+                    title = item.substring(0, byIndex).trim();
+                    artist = item.substring(byIndex + 4).trim();
+                } else if (dashIndex !== -1) {
+                    title = item.substring(0, dashIndex).trim();
+                    artist = item.substring(dashIndex + 3).trim();
+                } else {
+                    // Fallback if no separator was used
+                    title = item;
+                    artist = 'Unknown Artist';
+                }
+
+                songs.push({ title: title, artist: artist });
+            });
+            
+            return songs;
+        }
+
+        async function loadProfile() {
+            displayMessage("Loading profile data...", false);
+            try {
+                const response = await fetch('/api/profile');
+                
+                if (response.status === 401) {
+                    window.location.href = '/login'; 
+                    return;
+                }
+
+                if (!response.ok) {
+                    throw new Error(`Server returned status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                document.getElementById('userIdDisplay').textContent = data.id || 'N/A';
+                document.getElementById('name').value = data.name || '';
+                
+                const dobValue = data.dob ? new Date(data.dob).toISOString().split('T')[0] : '';
+                document.getElementById('dob').value = dobValue;
+                
+                document.getElementById('username').value = data.username || '';
+                document.getElementById('bio').value = data.bio || '';
+                document.getElementById('location').value = data.location || '';
+                document.getElementById('gender').value = data.gender || '';
+                
+                HOBBIES_INPUT.value = data.hobbies || '';
+                
+                // NEW: Hydrate the internal songs array from the DB string
+                likedSongsArray = hydrateSongsArray(data.liked_songs);
+
+                updateTagDisplays(); // Updates hobbies
+                renderCurrentSongs(); // Updates the new song list display
+
+                displayMessage("Profile data loaded successfully!", false);
+
+            } catch (error) {
+                console.error("Error loading profile:", error);
+                displayMessage(`Error loading profile: ${error.message}. Please log in.`, true);
+                document.getElementById('userIdDisplay').textContent = 'Error';
+            }
+        }
+
+        // --- Save Functionality ---
+        async function saveProfile() {
             SAVE_BUTTON.disabled = true;
             SAVE_BUTTON.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Saving...';
 
@@ -395,8 +537,13 @@
             const bio = document.getElementById('bio').value.trim();
             const location = document.getElementById('location').value.trim();
             const gender = document.getElementById('gender').value;
-            const hobbiesRaw = document.getElementById('hobbies').value.trim();
-            const songsRaw = document.getElementById('likedSongs').value.trim();
+            const hobbies = HOBBIES_INPUT.value.trim();
+            
+            // NEW: Convert the internal array of objects into the comma-separated string required by the API
+            // The format is "Title by Artist, Title 2 by Artist 2"
+            const liked_songs = likedSongsArray
+                .map(song => `${song.title} by ${song.artist}`)
+                .join(', ');
 
             if (!name || !username || !dob) {
                 displayMessage("Name, Username, and DOB are required fields.", true);
@@ -405,34 +552,36 @@
                 return;
             }
 
-            // Convert comma-separated strings to clean arrays
-            const formatList = (rawString) => {
-                return rawString.split(',').map(s => s.trim()).filter(s => s.length > 0);
-            };
-
             const profileData = {
-                name: name,
-                username: username,
-                dob: dob,
-                bio: bio,
-                location: location,
-                gender: gender,
-                hobbies: formatList(hobbiesRaw),
-                likedSongs: formatList(songsRaw),
-                // Updated simulated photo placeholder text color for light background
-                photoUrl: 'https://placehold.co/128x128/1f2937/ffffff?text=P', 
-                lastUpdated: new Date().toISOString()
+                name,
+                username,
+                dob,
+                bio,
+                location,
+                gender,
+                hobbies,
+                liked_songs // This is the comma-separated string for the DB
             };
-
-            const profileRef = getProfileDocRef();
-
+            
             try {
-                // Use setDoc with { merge: true } to create or update the document
-                await setDoc(profileRef, profileData, { merge: true });
-                console.log("Profile successfully saved!");
+                const response = await fetch('/api/profile', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(profileData)
+                });
+                
+                const result = await response.json();
+
+                if (!response.ok || result.error) {
+                    throw new Error(result.error || `Failed to save: ${response.statusText}`);
+                }
+
+                console.log("Profile successfully saved!", result);
                 displayMessage("Profile updated successfully!", false);
             } catch (e) {
-                console.error("Error saving document: ", e);
+                console.error("Error saving profile: ", e);
                 displayMessage("Error saving profile: " + e.message, true);
             } finally {
                 SAVE_BUTTON.disabled = false;
@@ -448,63 +597,22 @@
 
             if (!newPassword) {
                 passwordMessage.textContent = 'Please enter a new password.';
+                passwordMessage.style.color = '#dc2626';
                 return;
             }
 
-            // In a real application, you would use updatePassword(user, newPassword)
-            // For this simulation, we just show a success message.
-            passwordMessage.textContent = 'Password change process initiated. (Actual Firebase Auth required).';
-            passwordMessage.style.color = '#1D7E45'; // Darker green success color
+            passwordMessage.textContent = 'Password change process initiated. (Actual server-side update required).';
+            passwordMessage.style.color = '#1D7E45';
             document.getElementById('newPassword').value = '';
         }
         
-        // --- NEW: Go to Liked Songs Page (Actual Navigation Logic) ---
-        function goToLikedSongsPage() {
-            const songsRaw = document.getElementById('likedSongs').value.trim();
-            const songs = songsRaw.split(',').map(s => s.trim()).filter(s => s.length > 0);
-            
-            // 1. Hide the profile editor and show the songs page
-            PROFILE_CONTAINER.classList.add('hidden');
-            SONGS_PAGE.classList.remove('hidden');
-
-            // 2. Populate the songs list dynamically
-            FULL_SONGS_LIST.innerHTML = '';
-            
-            if (songs.length > 0) {
-                songs.forEach((song, index) => {
-                    const listItem = document.createElement('div');
-                    // Style each item as a visually distinct card-like entry
-                    listItem.className = 'p-3 bg-gray-50 rounded-lg flex items-center shadow-sm hover:shadow-md transition duration-150';
-                    listItem.innerHTML = `
-                        <span class="text-xl font-bold text-[#2D9B59] mr-4 w-6 text-center">${index + 1}.</span>
-                        <p class="text-gray-800 font-medium flex-grow">${song}</p>
-                        <i class="fas fa-heart text-red-400 text-lg ml-4"></i>
-                    `;
-                    FULL_SONGS_LIST.appendChild(listItem);
-                });
-            } else {
-                FULL_SONGS_LIST.innerHTML = `
-                    <div class="p-6 text-center border-2 border-dashed border-gray-300 rounded-xl">
-                        <i class="fas fa-exclamation-circle text-3xl text-gray-500 mb-3"></i>
-                        <p class="text-gray-700 font-semibold">No songs added yet!</p>
-                        <p class="text-gray-500 text-sm mt-1">Go back to the profile editor and list your favorite music.</p>
-                    </div>
-                `;
-            }
-            
-             // Clear any lingering status messages from the profile editor
-             STATUS_MESSAGE.classList.add('hidden');
-        }
-
-        // --- NEW: Go Back to Profile Editor ---
         function backToProfile() {
             SONGS_PAGE.classList.add('hidden');
             PROFILE_CONTAINER.classList.remove('hidden');
         }
 
-
-        // Start the application
-        initFirebase();
+        // Start the application by loading profile data
+        loadProfile();
     </script>
 </body>
 </html>
