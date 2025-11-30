@@ -111,6 +111,13 @@ app.get("/Account_info", (req, res) => {
   res.sendFile(path.join(__dirname, 'views', 'pages', 'Account_info.html'));
 });
 
+app.get("/myMatches", (req, res) => {
+    if (!req.session.user) {
+        return res.redirect('/login');
+    }
+    // Assuming your static HTML is in views/pages/
+    res.sendFile(path.join(__dirname, 'views', 'pages', 'myMatches.html')); 
+});
 
 const testUsers = [
   {username: "user1", password: "password1"},
