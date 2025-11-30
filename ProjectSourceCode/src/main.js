@@ -205,29 +205,29 @@ app.get("/logout", (req, res) => {
 
 
 //Route for account customization
-app.get("/account-custom", (req, res) => {
-  res.render("pages/account-custom");
-});
+// app.get("/account-custom", (req, res) => {
+//   res.render("pages/account-custom");
+// });
 
-app.post("/account-custom", async (req, res) => {
-  const { username, password, name, email, age, gender } = req.body;
-  const hash = await bcrypt.hash(password, 10);
-  const query = `
-    INSERT INTO users (username, password, name, email, age, gender)
-    VALUES ($1, $2, $3, $4, $5, $6)
-    RETURNING *;
-  `;
-  try {
-    const insertedUser = await db.one(query, [username, hash, name, email, age, gender]);
-    console.log(insertedUser);
-    res.render('pages/account-custom');
-  }
-  catch (err) {
-    const error = true;
-    console.log(err);
-    res.render('pages/account-custom', { message: "Error creating profile.", error: true });
-  }
-});
+// app.post("/account-custom", async (req, res) => {
+//   const { username, password, name, email, age, gender } = req.body;
+//   const hash = await bcrypt.hash(password, 10);
+//   const query = `
+//     INSERT INTO users (username, password, name, email, age, gender)
+//     VALUES ($1, $2, $3, $4, $5, $6)
+//     RETURNING *;
+//   `;
+//   try {
+//     const insertedUser = await db.one(query, [username, hash, name, email, age, gender]);
+//     console.log(insertedUser);
+//     res.render('pages/account-custom');
+//   }
+//   catch (err) {
+//     const error = true;
+//     console.log(err);
+//     res.render('pages/account-custom', { message: "Error creating profile.", error: true });
+//   }
+// });
 
 
 //Lab 10 Dummy Endpoint
@@ -535,6 +535,87 @@ app.get('/api/users', async (req, res) => {
     res.status(500).json({ 
       success: false, 
       error: error.message 
+    });
+  }
+});
+
+// GET /api/profile - Fetch current user's profile data
+app.get('/api/profile', async (req, res) => {
+  // Check if the user is logged in
+  if (!req.session.user) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+  
+  try {
+    // Fetch current user data from database
+    const user = await db.oneOrNone('SELECT id, username, name FROM users WHERE id = $1', [req.session.user.id]);
+    
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    
+    // Return user data (only username and name for now as requested)
+    res.json({
+      id: user.id,
+      username: user.username,
+      name: user.name
+    });
+  } catch (err) {
+    console.error('Error fetching profile:', err);
+    res.status(500).json({ error: "Error loading profile data" });
+  }
+});
+
+// PUT /api/profile - Update user's profile data
+app.put('/api/profile', async (req, res) => {
+  // Check if the user is logged in
+  if (!req.session.user) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+  
+  const { username, name } = req.body;
+  const userId = req.session.user.id;
+  
+  // Validate required fields - username and name are required
+  if (!username || username.trim() === '') {
+    return res.status(400).json({ error: "Username is required" });
+  }
+  if (!name || name.trim() === '') {
+    return res.status(400).json({ error: "Name is required" });
+  }
+  
+  try {
+    // Update username and name in the database
+    const query = `
+      UPDATE users 
+      SET username = $1, name = $2 
+      WHERE id = $3
+      RETURNING id, username, name;
+    `;
+    
+    const updatedUser = await db.one(query, [username.trim(), name.trim(), userId]);
+    
+    // Update session with new username if it changed
+    req.session.user.username = updatedUser.username;
+    
+    res.json({ 
+      success: true,
+      id: updatedUser.id,
+      username: updatedUser.username,
+      name: updatedUser.name
+    });
+  } catch (err) {
+    console.error('Error updating profile:', err);
+    
+    // Check if it's a unique constraint violation (username already exists)
+    if (err.code === '23505' || err.constraint === 'users_username_key') {
+      return res.status(400).json({ 
+        error: "Username already exists. Please choose a different username." 
+      });
+    }
+    
+    res.status(500).json({ 
+      error: "Error updating profile. Please try again." 
     });
   }
 });

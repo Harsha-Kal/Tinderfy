@@ -10,14 +10,14 @@
       <p class="home-lead">Edit your Tinderfy profile details. Your music taste is the key!</p>
     </header>
 
-    <div id="statusMessage" class="status-message hidden"></div>
+    <div id="statusMessage" style="display: none; padding: 12px; margin-bottom: 16px; border-radius: 8px; text-align: center; font-weight: 500;"></div>
 
     <form id="profileForm" class="profile-form">
 
       <!-- User‑ID / Info (if needed) -->
       <div class="form-group">
         <label>User ID (for reference)</label>
-        <div id="userIdDisplay" class="form-value">Loading...</div>
+        <div id="userIdDisplay" class="form-value">{{#if user}}{{user.id}}{{else}}Loading...{{/if}}</div>
       </div>
 
       <!-- Profile Photo & Basic Info -->
@@ -33,13 +33,13 @@
 
           <div class="form-group">
             <label for="name">Full Name</label>
-            <input type="text" id="name" class="input-field" placeholder="Alex Johnson" required>
+            <input type="text" id="name" class="input-field" placeholder="Alex Johnson" value="{{#if user}}{{user.name}}{{/if}}" required>
           </div>
 
           <div class="form-group split-two">
             <div>
               <label for="username">Username</label>
-              <input type="text" id="username" class="input-field" placeholder="VibeMaster" required>
+              <input type="text" id="username" class="input-field" placeholder="VibeMaster" value="{{#if user}}{{user.username}}{{/if}}" required>
             </div>
             <div>
               <label for="dob">Date of Birth</label>
@@ -117,8 +117,94 @@
   </div>
 </div>
 
-{{!-- Optional: If your page needs JS, you can embed it directly here --}}
+{{!-- JavaScript to handle profile loading and saving --}}
 <script>
-  // Paste your existing JS logic here (adjust IDs/classes as needed)
-  // For example: init Firebase, load data, handle saveProfile(), etc.
+  // Display status messages
+  function displayMessage(message, isError) {
+    const statusMessage = document.getElementById('statusMessage');
+    statusMessage.textContent = message;
+    statusMessage.style.display = 'block';
+    
+    // Set colors based on error/success
+    if (isError) {
+      statusMessage.style.backgroundColor = '#e74c3c';
+      statusMessage.style.color = '#ffffff';
+    } else {
+      statusMessage.style.backgroundColor = '#2ecc71';
+      statusMessage.style.color = '#ffffff';
+    }
+    
+    // Hide message after 5 seconds
+    setTimeout(() => {
+      statusMessage.style.display = 'none';
+    }, 5000);
+  }
+
+  // Save profile function
+  async function saveProfile() {
+    const saveButton = document.getElementById('saveButton');
+    const nameInput = document.getElementById('name');
+    const usernameInput = document.getElementById('username');
+    
+    // Get values
+    const name = nameInput.value.trim();
+    const username = usernameInput.value.trim();
+    
+    // Validate required fields
+    if (!name || !username) {
+      displayMessage("Name and Username are required fields.", true);
+      return;
+    }
+    
+    // Disable button and show loading state
+    saveButton.disabled = true;
+    saveButton.innerHTML = '💾 Saving...';
+    
+    try {
+      // Send POST request to update profile
+      const response = await fetch('/account-custom', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: name,
+          username: username
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Failed to save profile');
+      }
+      
+      displayMessage("Profile updated successfully!", false);
+      console.log("Profile successfully saved!", result);
+      
+    } catch (error) {
+      console.error("Error saving profile:", error);
+      displayMessage("Error saving profile: " + error.message, true);
+    } finally {
+      // Re-enable button
+      saveButton.disabled = false;
+      saveButton.innerHTML = '💾 Save Profile';
+    }
+  }
+  
+  // Make saveProfile available globally for onclick handler
+  window.saveProfile = saveProfile;
+  
+  // Load user data on page load (if not already populated from server-side rendering)
+  document.addEventListener('DOMContentLoaded', function() {
+    // Fields should already be populated from server-side rendering
+    // But if they're empty, we can fetch them here as a fallback
+    const nameInput = document.getElementById('name');
+    const usernameInput = document.getElementById('username');
+    
+    if ((!nameInput.value || !usernameInput.value) && document.getElementById('userIdDisplay').textContent !== 'Loading...') {
+      // Data should be loaded, but if not, show a message
+      console.log('Profile data loaded from server');
+    }
+  });
 </script>
