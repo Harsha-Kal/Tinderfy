@@ -425,6 +425,7 @@ WHERE uts.user_id = $1
       ]
     );
     console.log(`Added feature averages to user: ${userId}`);
+    await K_clustering(4)
   }catch(error){
     console.error(`Error processing user ${userId} songs`, error.message);
   }
