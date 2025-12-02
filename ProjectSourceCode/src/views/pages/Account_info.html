@@ -140,15 +140,20 @@
             </section>
 
             <section class="space-y-4">
-                <h2 class="text-2xl font-semibold text-gray-800 border-b border-gray-300 pb-2">Interests</h2>
-                <div>
-                    <label for="hobbies" class="block text-sm font-medium mb-1">Hobbies (Comma Separated)</label>
-                    <input type="text" id="hobbies" placeholder="Hiking, Cooking, Gaming, Reading" class="input-field w-full p-3 rounded-lg">
-                    <div id="hobbiesDisplay" class="mt-2 flex flex-wrap gap-2 text-sm">
-                        </div>
+                <h2 class="text-2xl font-semibold text-gray-800 border-b border-gray-300 pb-2 flex items-center">
+                    <i class="fas fa-address-book mr-2 text-[#2D9B59]"></i> Contact Information
+                </h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label for="email" class="block text-sm font-medium mb-1">Email Address</label>
+                        <input type="email" id="email" placeholder="alex.j@example.com" class="input-field w-full p-3 rounded-lg">
+                    </div>
+                    <div>
+                        <label for="phoneNumber" class="block text-sm font-medium mb-1">Phone Number</label>
+                        <input type="tel" id="phoneNumber" placeholder="(555) 123-4567" class="input-field w-full p-3 rounded-lg">
+                    </div>
                 </div>
             </section>
-
             <section class="space-y-4">
                 <div class="flex justify-between items-center border-b border-gray-300 pb-2">
                     <h2 class="text-2xl font-semibold text-gray-800 flex items-center">
@@ -181,12 +186,10 @@
                 </div>
             </section>
 
-            <!-- Save & Logout Buttons -->
             <div class="pt-8 space-y-4">
                 <button id="saveButton" onclick="saveProfile()" class="accent-button w-full px-8 py-4 rounded-xl text-lg font-extrabold text-white shadow-xl hover:scale-[1.01]">
                     <i class="fas fa-save mr-2"></i> Save Profile
                 </button>
-                <!-- 1. LOGOUT BUTTON ADDED HERE -->
                 <a href="/logout" class="block text-center w-full px-8 py-3 rounded-xl text-base font-bold text-gray-700 bg-gray-200 hover:bg-gray-300 transition duration-150">
                     <i class="fas fa-sign-out-alt mr-2"></i> Log Out
                 </a>
@@ -250,7 +253,7 @@
         // Global variable exposure for onclick handlers
         window.saveProfile = saveProfile;
         window.changePassword = changePassword;
-        window.updateTagDisplays = updateTagDisplays;
+        // Removed window.updateTagDisplays
         window.goToLikedSongsPage = goToLikedSongsPage;
         window.backToProfile = backToProfile;
         window.openSongModal = openSongModal;
@@ -266,13 +269,13 @@
         // --- DOM Elements ---
         const STATUS_MESSAGE = document.getElementById('statusMessage');
         const USER_ID_DISPLAY = document.getElementById('userIdDisplay');
-        const HOBBIES_DISPLAY = document.getElementById('hobbiesDisplay');
+        // Removed HOBBIES_DISPLAY
         const SAVE_BUTTON = document.getElementById('saveButton');
         const PROFILE_CONTAINER = document.getElementById('profileFormContainer');
         const SONGS_PAGE = document.getElementById('likedSongsPage');
         const FULL_SONGS_LIST = document.getElementById('fullSongsList');
         const CURRENT_SONGS_DISPLAY = document.getElementById('currentSongsDisplay');
-        const HOBBIES_INPUT = document.getElementById('hobbies');
+        // Removed HOBBIES_INPUT
 
         // --- PHOTO ELEMENTS ---
         const PHOTO_INPUT = document.getElementById('profilePhoto');
@@ -301,6 +304,7 @@
             }, 5000);
         }
 
+        /* REMOVED: Hobbies specific logic 
         function updateTagDisplays() {
             // This function is now only used for Hobbies
             const hobbiesInput = HOBBIES_INPUT.value.trim();
@@ -321,8 +325,9 @@
             renderTags(HOBBIES_DISPLAY, hobbiesInput, 'fas fa-tag');
         }
 
-        // Add input listeners to update tags dynamically
-        HOBBIES_INPUT.addEventListener('input', updateTagDisplays);
+        // Removed input listener for hobbies
+        // HOBBIES_INPUT.addEventListener('input', updateTagDisplays);
+        */
         
         // --- Image Preview Logic ---
         PHOTO_INPUT.addEventListener('change', function() {
@@ -509,12 +514,17 @@
                 document.getElementById('location').value = data.location || '';
                 document.getElementById('gender').value = data.gender || '';
                 
-                HOBBIES_INPUT.value = data.hobbies || '';
+                // NEW: Load Contact Info
+                document.getElementById('email').value = data.email || '';
+                document.getElementById('phoneNumber').value = data.phoneNumber || '';
+                
+                // Note: Hobbies field removed from load logic
+                // HOBBIES_INPUT.value = data.hobbies || '';
                 
                 // NEW: Hydrate the internal songs array from the DB string
                 likedSongsArray = hydrateSongsArray(data.liked_songs);
 
-                updateTagDisplays(); // Updates hobbies
+                // Removed updateTagDisplays(); 
                 renderCurrentSongs(); // Updates the new song list display
 
                 displayMessage("Profile data loaded successfully!", false);
@@ -537,7 +547,12 @@
             const bio = document.getElementById('bio').value.trim();
             const location = document.getElementById('location').value.trim();
             const gender = document.getElementById('gender').value;
-            const hobbies = HOBBIES_INPUT.value.trim();
+            
+            // NEW: Get Contact Info
+            const email = document.getElementById('email').value.trim();
+            const phoneNumber = document.getElementById('phoneNumber').value.trim();
+            // Removed: const hobbies = HOBBIES_INPUT.value.trim();
+
             
             // NEW: Convert the internal array of objects into the comma-separated string required by the API
             // The format is "Title by Artist, Title 2 by Artist 2"
@@ -559,7 +574,9 @@
                 bio,
                 location,
                 gender,
-                hobbies,
+                email, // NEW
+                phoneNumber, // NEW
+                // Removed: hobbies,
                 liked_songs // This is the comma-separated string for the DB
             };
             

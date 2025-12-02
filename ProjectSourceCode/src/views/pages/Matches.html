@@ -205,14 +205,11 @@
 </head>
 <body>
     
-    <!-- NAVIGATION BAR ADDED -->
     <div class="nav-bar">
-        <!-- Button to Account Customization -->
         <a href="/Account_info" class="nav-link account-link">
             👤 Account
         </a>
         
-        <!-- Button to My Matches Page -->
         <a href="/myMatches" class="nav-link matches-link">
             💬 My Matches
         </a>
@@ -236,12 +233,6 @@
             <div class="bio">
                 <h3>About Me</h3>
                 <p>Loading profile data from the database...</p>
-            </div>
-
-            <div class="tags-section">
-                <h4>✨ Hobbies</h4>
-                <div class="tags-container" id="hobbies-tags">
-                    </div>
             </div>
 
             <div class="tags-section">
@@ -282,11 +273,6 @@
             // Update Bio
             document.querySelector('.bio p').textContent = profile.bio;
 
-            // Render Hobbies Tags
-            const hobbiesContainer = document.getElementById('hobbies-tags');
-            // Ensure profile.hobbies is an array on the client side
-            hobbiesContainer.innerHTML = profile.hobbies.map(tag => `<span class="tag">${tag}</span>`).join('');
-
             // Render Liked Songs Tags
             const songsContainer = document.getElementById('songs-tags');
             // Ensure profile.likedSongs is an array on the client side
@@ -323,7 +309,7 @@
                 }
                 
                 // Assuming profileData is structured like: 
-                // { id: 1, name: "...", age: 25, location: "...", bio: "...", photoUrl: "...", matchScore: "85%", hobbies: ["...", "..."], likedSongs: ["...", "..."] }
+                // { id: 1, name: "...", age: 25, location: "...", bio: "...", photoUrl: "...", matchScore: "85%", likedSongs: ["...", "..."] }
                 renderProfile(profileData);
             } catch (error) {
                 console.error("Error fetching next profile:", error);
@@ -357,8 +343,7 @@
             document.querySelector('.user-info p').textContent = '';
             document.querySelector('.bio p').textContent = message;
             
-            // Clear hobbies and songs
-            document.getElementById('hobbies-tags').innerHTML = '';
+            // Clear songs
             document.getElementById('songs-tags').innerHTML = '';
             
             // Disable buttons
@@ -368,16 +353,23 @@
 
         /**
          * Sends the user's rating (like/dislike) back to the backend and fetches the next profile.
-         * @param {string} action - 'like' or 'dislike'.
+         * * NOTE: 'like' action should be handled by the backend to save the profile to "requests" 
+         * in the user's match profile table.
+         * 'dislike' action should be handled by the backend to discard the profile.
+         * In both cases, we fetch the next profile immediately afterward.
+         * * @param {string} action - 'like' or 'dislike'.
          */
         async function rateUser(action) {
             if (!currentProfileId) {
                 console.warn("No profile loaded to rate.");
                 return;
             }
+            
+            const actionText = action === 'like' ? 'Liking and adding to requests...' : 'Disliking...';
+            console.log(actionText); // Optional: Provide quick feedback in console
 
             try {
-                // 2. CALL YOUR BACKEND API TO RECORD THE RATING
+                // Send the rating to the backend
                 const response = await fetch('/api/match/rate', {
                     method: 'POST',
                     headers: {
@@ -393,7 +385,7 @@
                     throw new Error(`Failed to record rating: ${response.status}`);
                 }
 
-                // Once rating is recorded, fetch the next profile
+                // If the rating is recorded successfully, fetch the next profile immediately
                 await fetchNextProfile();
 
             } catch (error) {
@@ -403,7 +395,6 @@
         }
 
         // Initialize the page by fetching the first profile
-        // The script runs after the DOM is ready in this format
         document.addEventListener('DOMContentLoaded', fetchNextProfile); 
     </script>
 </body>
