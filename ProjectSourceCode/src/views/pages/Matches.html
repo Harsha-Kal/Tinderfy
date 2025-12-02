@@ -222,7 +222,7 @@
         <div class="user-card">
             <div class="user-photo">
                 <div class="match-score">
-                    🎶 **Loading**...
+                    🎶 Loading...
                 </div>
             </div>
 
@@ -275,7 +275,7 @@
 
             // Update Card Info
             document.querySelector('.user-photo').style.backgroundImage = `url('${profile.photoUrl}')`;
-            document.querySelector('.match-score').innerHTML = `🎶 **${profile.matchScore || '??'}** Match`;
+            document.querySelector('.match-score').innerHTML = `🎶 ${profile.matchScore || '??'} Match`;
             document.querySelector('.user-info h2').textContent = `${profile.name}, ${profile.age}`;
             document.querySelector('.user-info p').textContent = `📍 ${profile.location}`;
 

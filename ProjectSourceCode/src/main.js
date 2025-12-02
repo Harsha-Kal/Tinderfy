@@ -494,6 +494,26 @@ function normalizeFeatures(features){
   }))
 }
 
+async function calculateSimilarity(user1_id, user2_id){
+  const user1_info = await db.oneOrNone('SELECT average_song_acousticness, average_song_danceability, average_song_energy, average_song_instrumentalness, average_song_happiness FROM users WHERE id = $1', [user1_id]);
+  const user2_info = await db.oneOrNone('SELECT average_song_acousticness, average_song_danceability, average_song_energy, average_song_instrumentalness, average_song_happiness FROM users WHERE id = $1', [user2_id]);
+  if(!user1_info || !user2_info){
+    console.error('User not found');
+    return null;
+  }
+  
+  // Check if users have all required features
+  if (!user1_info || !user2_info) {
+    return null;
+  }
+  
+  const distance = (user1_info.average_song_acousticness - user2_info.average_song_acousticness)**2 + (user1_info.average_song_danceability - user2_info.average_song_danceability)**2 + (user1_info.average_song_energy - user2_info.average_song_energy)**2 + (user1_info.average_song_instrumentalness - user2_info.average_song_instrumentalness)**2 + (user1_info.average_song_happiness - user2_info.average_song_happiness)**2;
+  const k = 0.001; // decay constant tuned to your 200–500 range
+  const similarity = 100 * Math.exp(-k * distance);
+  console.log(`Similarity between user ${user1_id} and user ${user2_id} is ${similarity}`);
+  return similarity;
+}
+
 // //endpoint for clustering
 // app.post('/api/cluster', async (req, res) => {
 //   const k = 5
@@ -770,7 +790,7 @@ app.get('/api/user/matches', async (req, res) => {
   }
 });
 
-// GET /api/match/next - Fetch next user with same cluster_id
+// GET /api/match/next - Fetch next user (same cluster first, then different clusters)
 app.get('/api/match/next', async (req, res) => {
   // Check if the user is logged in
   if (!req.session.user) {
@@ -780,9 +800,9 @@ app.get('/api/match/next', async (req, res) => {
   const loggedInUserId = req.session.user.id;
   
   try {
-    // First, get the logged-in user's cluster_id
+    // First, get the logged-in user's cluster_id and feature data
     const currentUser = await db.oneOrNone(
-      'SELECT cluster_id FROM users WHERE id = $1',
+      'SELECT cluster_id, average_song_acousticness, average_song_danceability, average_song_energy, average_song_instrumentalness, average_song_happiness FROM users WHERE id = $1',
       [loggedInUserId]
     );
     
@@ -792,10 +812,10 @@ app.get('/api/match/next', async (req, res) => {
     
     const clusterId = currentUser.cluster_id;
     
-    // Get all users with the same cluster_id that haven't been matched/disliked yet
-    // Exclude: current user, users already in matches table with current user
-    const availableUsers = await db.any(`
-      SELECT u.id, u.username, u.name, u.age, u.gender, u.profile_picture_url, u.email
+    // Step 1: Try to get users with the same cluster_id first
+    let availableUsers = await db.any(`
+      SELECT u.id, u.username, u.name, u.age, u.gender, u.profile_picture_url, u.email, u.cluster_id,
+             u.average_song_acousticness, u.average_song_danceability, u.average_song_energy, u.average_song_instrumentalness, u.average_song_happiness
       FROM users u
       WHERE u.cluster_id = $1
         AND u.id != $2
@@ -807,6 +827,28 @@ app.get('/api/match/next', async (req, res) => {
       ORDER BY u.id
       LIMIT 1
     `, [clusterId, loggedInUserId]);
+    
+    let isSameCluster = true;
+    
+    // Step 2: If no same-cluster users, get users from different clusters
+    if (availableUsers.length === 0) {
+      isSameCluster = false;
+      availableUsers = await db.any(`
+        SELECT u.id, u.username, u.name, u.age, u.gender, u.profile_picture_url, u.email, u.cluster_id,
+               u.average_song_acousticness, u.average_song_danceability, u.average_song_energy, u.average_song_instrumentalness, u.average_song_happiness
+        FROM users u
+        WHERE u.cluster_id != $1
+          AND u.cluster_id IS NOT NULL
+          AND u.id != $2
+          AND NOT EXISTS (
+            SELECT 1 FROM matches m
+            WHERE ((m.user1_id = $2 AND m.user2_id = u.id)
+               OR (m.user2_id = $2 AND m.user1_id = u.id))
+          )
+        ORDER BY u.id
+        LIMIT 1
+      `, [clusterId, loggedInUserId]);
+    }
     
     if (availableUsers.length === 0) {
       return res.status(204).json({ message: "No more profiles available. Check back later!" });
@@ -820,8 +862,17 @@ app.get('/api/match/next', async (req, res) => {
       username: user.username,
       name: user.name,
       age: user.age,
-      email: user.email
+      email: user.email,
+      cluster_id: user.cluster_id,
+      isSameCluster: isSameCluster
     });
+    
+    // Calculate match score using similarity for all users (same cluster and different cluster)
+    let matchScore = "??%"; // Default fallback
+    const similarity = await calculateSimilarity(loggedInUserId, user.id);
+    if (similarity !== null && similarity !== undefined) {
+      matchScore = `${Math.round(similarity)}%`;
+    }
     
     // Get user's liked songs from users_to_songs table
     const likedSongs = await db.any(`
@@ -836,9 +887,6 @@ app.get('/api/match/next', async (req, res) => {
     const likedSongsArray = likedSongs.map(song => 
       song.title && song.artist ? `${song.title} by ${song.artist}` : `${song.title || song.artist || ''}`
     );
-    
-    // Calculate match score (100% if same cluster)
-    const matchScore = "100%";
     
     // Determine display name - prefer name, fallback to username, then Anonymous
     // Handle null, undefined, and empty strings properly
@@ -949,7 +997,6 @@ const server = app.listen(PORT, HOST, async () => {
   try{
     // await K_clustering(4);
     //await getSpotifyId('Dancing Queen', 'ABBA');
-    //await processSongById(8);
   }catch(error){
     console.error('failed to process song:', error.message);
   }
