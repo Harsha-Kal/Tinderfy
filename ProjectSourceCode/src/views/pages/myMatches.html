@@ -66,7 +66,7 @@
 
         <!-- Navigation back to Swiping -->
         <div class="mb-6 flex justify-between items-center">
-            <a href="/matches" class="accent-button px-4 py-2 rounded-lg text-white font-semibold flex items-center shadow-md">
+            <a href="/Matches" class="accent-button px-4 py-2 rounded-lg text-white font-semibold flex items-center shadow-md">
                 <i class="fas fa-arrow-left mr-2"></i> Back to Swiping
             </a>
             
@@ -87,22 +87,10 @@
             </div>
             <p id="noConfirmed" class="text-gray-500 mt-3 hidden">No confirmed matches yet. Keep swiping!</p>
         </section>
-
-        <!-- 2. Pending Requests Received -->
-        <section class="mb-8">
-            <h2 class="text-xl font-semibold text-gray-700 mb-4 border-b border-gray-200 pb-1">
-                Requests Received <span class="text-sm text-gray-500">(Your decision)</span>
-            </h2>
-            <div id="receivedRequestsList" class="space-y-3">
-                <!-- Data will be dynamically loaded here -->
-            </div>
-            <p id="noReceived" class="text-gray-500 mt-3 hidden">No new requests pending.</p>
-        </section>
-
         <!-- 3. Requests Sent -->
         <section>
             <h2 class="text-xl font-semibold text-gray-700 mb-4 border-b border-gray-200 pb-1">
-                Requests Sent <span class="text-sm text-gray-500">(Waiting for them to respond)</span>
+                Requests <span class="text-sm text-gray-500">(Waiting for them to respond)</span>
             </h2>
             <div id="sentRequestsList" class="space-y-3">
                 <!-- Data will be dynamically loaded here -->
@@ -114,7 +102,6 @@
 
     <script>
         const confirmedList = document.getElementById('confirmedMatchesList');
-        const receivedList = document.getElementById('receivedRequestsList');
         const sentList = document.getElementById('sentRequestsList');
 
         /**
@@ -145,91 +132,99 @@
 
         /**
          * Renders all match data (Confirmed, Sent, Received) into their respective lists.
-         * In a real application, matchesData would come from the /api/user/matches endpoint.
-         * NOTE: The structure assumes phone number is available for Confirmed Matches.
-         * * @param {Array} matchesData - Array of match objects from the server.
+         * @param {Object} matchesData - Object with confirmed and sent arrays from the server.
          */
         function renderMatches(matchesData) {
             // Clear lists and reset visibility
             confirmedList.innerHTML = '';
-            receivedList.innerHTML = '';
             sentList.innerHTML = '';
             
             let confirmedCount = 0;
-            let receivedCount = 0;
             let sentCount = 0;
 
-            matchesData.forEach(match => {
-                // Determine the status (adjust these checks based on your actual API response structure)
-                const isConfirmed = match.status === 'CONFIRMED';
-                const isReceived = match.status === 'RECEIVED_PENDING';
-                const isSent = match.status === 'SENT_PENDING';
+            const confirmed = matchesData.confirmed || [];
+            const sent = matchesData.sent || [];
 
+            // Render confirmed matches
+            confirmed.forEach(match => {
+                confirmedCount++;
                 const card = document.createElement('div');
                 card.className = 'match-card';
                 
-                let content = `
+                const photoUrl = match.photoUrl || 'https://placehold.co/40x40/cccccc/333333?text=?';
+                
+                // Show name prominently, username below if different
+                const nameDisplay = match.name ? match.name : match.username || 'Unknown';
+                const usernameDisplay = match.name && match.username && match.name !== match.username ? `@${match.username}` : '';
+                
+                card.innerHTML = `
                     <div class="flex items-center space-x-4">
-                        <img src="${match.photoUrl || 'https://placehold.co/40x40/cccccc/333333?text=?'}" alt="Photo" class="w-10 h-10 rounded-full object-cover border-2 border-gray-300">
+                        <img src="${photoUrl}" alt="Photo" class="w-10 h-10 rounded-full object-cover border-2 border-gray-300">
                         <div>
-                            <p class="font-bold text-gray-800">${match.username} <span class="text-sm text-gray-500 font-normal">(${match.age})</span></p>
-                            ${isConfirmed ? `<p class="text-xs text-gray-600">${match.matchScore || '??%'} Music Match</p>` : ''}
+                            <p class="font-bold text-gray-800">${nameDisplay} <span class="text-sm text-gray-500 font-normal">(${match.age || '?'})</span></p>
+                            ${usernameDisplay ? `<p class="text-xs text-gray-500">${usernameDisplay}</p>` : ''}
+                            <p class="text-xs text-gray-600">${match.matchScore || '100%'} Music Match</p>
+                        </div>
+                    </div>
+                    <div class="flex flex-col items-end">
+                        <span class="status-badge status-confirmed mb-1">MATCH</span>
+                    </div>
+                `;
+                
+                confirmedList.appendChild(card);
+            });
+
+            // Render sent requests (matched = false)
+            sent.forEach(match => {
+                sentCount++;
+                const card = document.createElement('div');
+                card.className = 'match-card';
+                
+                const photoUrl = match.photoUrl || 'https://placehold.co/40x40/cccccc/333333?text=?';
+                
+                // Show name prominently, username below if different
+                const nameDisplay = match.name ? match.name : match.username || 'Unknown';
+                const usernameDisplay = match.name && match.username && match.name !== match.username ? `@${match.username}` : '';
+                
+                card.innerHTML = `
+                    <div class="flex items-center space-x-4">
+                        <img src="${photoUrl}" alt="Photo" class="w-10 h-10 rounded-full object-cover border-2 border-gray-300">
+                        <div>
+                            <p class="font-bold text-gray-800">${nameDisplay} <span class="text-sm text-gray-500 font-normal">(${match.age || '?'})</span></p>
+                            ${usernameDisplay ? `<p class="text-xs text-gray-500">${usernameDisplay}</p>` : ''}
                         </div>
                     </div>
                 `;
-
-                let actionArea = '';
-
-                if (isConfirmed) {
-                    confirmedCount++;
-                    // Confirmed Match: Status badge + Contact Info
-                    actionArea = `
-                        <div class="flex flex-col items-end">
-                            <span class="status-badge status-confirmed mb-1">MATCH</span>
-                            <p class="text-xs font-semibold text-gray-700 mt-2">
-                                Call: <a href="tel:${match.phoneNumber}" class="text-blue-600 hover:underline">${match.phoneNumber || 'Not available'}</a>
-                            </p>
-                        </div>
-                    `;
-                    confirmedList.appendChild(card);
-                } else if (isReceived) {
-                    receivedCount++;
-                    // Received Request: Accept/Reject Buttons
-                    actionArea = `
-                        <div class="flex space-x-2">
-                            <button onclick="handleRequest('accept', '${match.id}')" class="px-3 py-1 bg-[#2D9B59] text-white rounded-full text-xs font-bold hover:bg-[#1D7E45] transition">Accept</button>
-                            <button onclick="handleRequest('reject', '${match.id}')" class="px-3 py-1 bg-red-500 text-white rounded-full text-xs font-bold hover:bg-red-600 transition">Reject</button>
-                        </div>
-                    `;
-                    receivedList.appendChild(card);
-                } else if (isSent) {
-                    sentCount++;
-                    // Sent Request: Status badge
-                    actionArea = `<span class="status-badge status-sent">SENT</span>`;
-                    sentList.appendChild(card);
-                }
                 
-                card.innerHTML = content + actionArea;
+                sentList.appendChild(card);
             });
 
             // Toggle "No Data" messages based on actual counts
             document.getElementById('noConfirmed').classList.toggle('hidden', confirmedCount > 0);
-            document.getElementById('noReceived').classList.toggle('hidden', receivedCount > 0);
             document.getElementById('noSent').classList.toggle('hidden', sentCount > 0);
         }
 
-        // Example of how to call renderMatches after fetching data:
-        /*
+        // Fetch matches from API and render them
         document.addEventListener('DOMContentLoaded', async () => {
-            const response = await fetch('/api/user/matches'); // Your Express endpoint
-            const data = await response.json();
-            renderMatches(data.matches);
-        });
-        */
-        
-        // Initial setup to ensure "No Data" messages are visible when the page loads without data
-        document.addEventListener('DOMContentLoaded', () => {
-            renderMatches([]); // Render an empty array to initialize the "No Data" messages
+            try {
+                const response = await fetch('/api/user/matches');
+                
+                if (response.status === 401) {
+                    window.location.href = '/login';
+                    return;
+                }
+                
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch matches: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                renderMatches(data);
+            } catch (error) {
+                console.error('Error fetching matches:', error);
+                // Still render empty to show "No Data" messages
+                renderMatches({ confirmed: [], sent: [] });
+            }
         });
     </script>
 </body>

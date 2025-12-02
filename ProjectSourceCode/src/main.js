@@ -680,6 +680,96 @@ async function returnAllMatches(user_id) {
   return matches;
 }
 
+// GET /api/user/matches - Fetch all matches for logged-in user
+app.get('/api/user/matches', async (req, res) => {
+  // Check if the user is logged in
+  if (!req.session.user) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+  
+  const loggedInUserId = req.session.user.id;
+  
+  try {
+    // Get confirmed matches (matched = true)
+    const confirmedMatches = await db.any(
+      `SELECT 
+        m.user1_id,
+        m.user2_id,
+        m.matched,
+        u.id AS other_user_id,
+        u.username,
+        u.name,
+        u.age,
+        u.profile_picture_url
+       FROM matches m
+       JOIN users u
+         ON u.id = CASE
+                    WHEN m.user1_id = $1 THEN m.user2_id
+                    ELSE m.user1_id
+                  END
+       WHERE (m.user1_id = $1 OR m.user2_id = $1)
+         AND m.matched = TRUE
+       ORDER BY m.user1_id, m.user2_id`,
+      [loggedInUserId]
+    );
+    
+    // Get pending requests sent (matched = false)
+    // These are matches where the logged-in user is involved but matched is false
+    // Note: We can't perfectly determine who initiated without additional tracking,
+    // so we'll show all unmatched requests where the logged-in user is involved
+    const sentRequests = await db.any(
+      `SELECT 
+        m.user1_id,
+        m.user2_id,
+        m.matched,
+        u.id AS other_user_id,
+        u.username,
+        u.name,
+        u.age,
+        u.profile_picture_url
+       FROM matches m
+       JOIN users u
+         ON u.id = CASE
+                    WHEN m.user1_id = $1 THEN m.user2_id
+                    ELSE m.user1_id
+                  END
+       WHERE (m.user1_id = $1 OR m.user2_id = $1)
+         AND m.matched = FALSE
+       ORDER BY m.user1_id, m.user2_id`,
+      [loggedInUserId]
+    );
+    
+    // Format confirmed matches
+    const formattedConfirmed = confirmedMatches.map(match => ({
+      id: match.other_user_id,
+      username: match.username || 'Unknown',
+      name: match.name || match.username || 'Unknown',
+      age: match.age || '?',
+      photoUrl: match.profile_picture_url || null,
+      status: 'CONFIRMED',
+      matchScore: '100%' // Since they're in the same cluster
+    }));
+    
+    // Format sent requests
+    const formattedSent = sentRequests.map(match => ({
+      id: match.other_user_id,
+      username: match.username || 'Unknown',
+      name: match.name || match.username || 'Unknown',
+      age: match.age || '?',
+      photoUrl: match.profile_picture_url || null,
+      status: 'SENT_PENDING'
+    }));
+    
+    res.json({
+      confirmed: formattedConfirmed,
+      sent: formattedSent
+    });
+  } catch (err) {
+    console.error('Error fetching user matches:', err);
+    res.status(500).json({ error: "Error loading matches. Please try again." });
+  }
+});
+
 // GET /api/match/next - Fetch next user with same cluster_id
 app.get('/api/match/next', async (req, res) => {
   // Check if the user is logged in
@@ -812,30 +902,35 @@ app.post('/api/match/rate', async (req, res) => {
     `, [user1_id, user2_id]);
     
     if (existingMatch) {
-      // Update existing match
+      // Match already exists - check the current matched status
       if (rating === 'like') {
-        // If it's a like, set matched to true if both liked each other
-        // For now, just update the match record
-        await db.none(`
-          UPDATE matches 
-          SET matched = $1
-          WHERE user1_id = $2 AND user2_id = $3
-        `, [rating === 'like', user1_id, user2_id]);
+        // If matched is currently false, this is the second like - make it mutual!
+        // If matched is already true, both users already like each other - no change needed
+        if (existingMatch.matched === false) {
+          await db.none(`
+            UPDATE matches 
+            SET matched = true
+            WHERE user1_id = $1 AND user2_id = $2
+          `, [user1_id, user2_id]);
+        }
       } else {
-        // Dislike - ensure matched is false
+        // Dislike - remove the match record entirely
         await db.none(`
-          UPDATE matches 
-          SET matched = false
+          DELETE FROM matches 
           WHERE user1_id = $1 AND user2_id = $2
         `, [user1_id, user2_id]);
       }
     } else {
-      // Create new match record
-      // matched = true only if it's a like (for now, we could make it mutual later)
-      await db.none(`
-        INSERT INTO matches (user1_id, user2_id, matched)
-        VALUES ($1, $2, $3)
-      `, [user1_id, user2_id, rating === 'like']);
+      // No existing match - creating first like
+      if (rating === 'like') {
+        // Create new match record with matched = false (only logged-in user has liked)
+        // This will appear in "requests sent" until the other user likes back
+        await db.none(`
+          INSERT INTO matches (user1_id, user2_id, matched)
+          VALUES ($1, $2, false)
+        `, [user1_id, user2_id]);
+      }
+      // If it's a dislike and no match exists, nothing to do
     }
     
     res.json({ success: true, message: `User ${rating} recorded successfully` });

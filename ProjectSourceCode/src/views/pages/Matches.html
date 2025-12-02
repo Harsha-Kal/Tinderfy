@@ -334,12 +334,12 @@
                 } else if (error.message.includes("complete your profile")) {
                     showNoMoreUsersMessage("Please complete your profile to start matching.");
                 } else {
-                    // Display an error message to the user
+                // Display an error message to the user
                     document.querySelector('.user-info h2').textContent = "Error Loading Profiles";
                     document.querySelector('.bio p').textContent = error.message || "An error occurred. Please try again.";
-                    // Disable buttons
-                    document.querySelector('.actions').style.pointerEvents = 'none';
-                }
+                // Disable buttons
+                document.querySelector('.actions').style.pointerEvents = 'none';
+            }
             }
         }
 
