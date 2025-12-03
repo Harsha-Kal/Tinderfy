@@ -379,6 +379,13 @@ WHERE uts.user_id = $1;`, [userId]);
               song.id
             ]
           );
+          const userNumber = await db.oneValue('SELECT count(*) FROM users');
+          if(userNumber < 4){
+            await K_clustering(userNumber);
+          }
+          else{
+            await K_clustering(4);
+          }
         }else{
           console.error(`Failed to get anaylsis for ${song.title}`);
         }
