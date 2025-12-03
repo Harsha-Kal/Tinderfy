@@ -560,48 +560,47 @@ app.get('/api/users', async (req, res) => {
   }
 });
 
-// GET /api/profile - Fetch current user's profile data
+// GET /api/profile - Fetch the logged-in user's profile data
 app.get('/api/profile', async (req, res) => {
-  // Check if the user is logged in
   if (!req.session.user) {
     return res.status(401).json({ error: "Not authenticated" });
   }
-  
+
+  const userId = req.session.user.id;
+
   try {
-    // Fetch current user data from database
-    const user = await db.oneOrNone('SELECT id, username, name FROM users WHERE id = $1', [req.session.user.id]);
-    
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
-    
-    // Get user's liked songs from users_to_songs table
-    const likedSongs = await db.any(`
-      SELECT s.title, s.artist
-      FROM songs s
-      JOIN users_to_songs uts ON s.id = uts.song_id
-      WHERE uts.user_id = $1
-      ORDER BY uts.id
-    `, [user.id]);
-    
-    // Format songs as comma-separated string: "Title by Artist, Title 2 by Artist 2"
-    const likedSongsString = likedSongs
-      .map(song => song.title && song.artist ? `${song.title} by ${song.artist}` : `${song.title || song.artist || ''}`)
-      .filter(song => song.length > 0)
-      .join(', ');
-    
-    // Return user data including liked songs
-    res.json({
-      id: user.id,
-      username: user.username,
-      name: user.name,
-      liked_songs: likedSongsString || ''
-    });
+    const query = `
+      SELECT 
+        id,
+        username,
+        name,
+        dob,
+        bio,
+        location,
+        gender,
+        email,
+        phonenumber,
+        liked_songs,
+        profile_picture_url,
+        average_song_acousticness,
+        average_song_danceability,
+        average_song_energy,
+        average_song_instrumentalness,
+        average_song_happiness,
+        cluster_id
+      FROM users
+      WHERE id = $1;
+    `;
+
+    const user = await db.one(query, [userId]);
+
+    res.json(user);
   } catch (err) {
     console.error('Error fetching profile:', err);
-    res.status(500).json({ error: "Error loading profile data" });
+    res.status(500).json({ error: "Error fetching profile. Please try again." });
   }
 });
+
 
 // PUT /api/profile - Update user's profile data
 app.put('/api/profile', async (req, res) => {
@@ -609,53 +608,82 @@ app.put('/api/profile', async (req, res) => {
   if (!req.session.user) {
     return res.status(401).json({ error: "Not authenticated" });
   }
-  
-  const { username, name } = req.body;
+
+  const {
+    username,
+    name,
+    dob,
+    bio,
+    location,
+    gender,
+    email,
+    phoneNumber,
+    liked_songs
+  } = req.body;
+
   const userId = req.session.user.id;
-  
-  // Validate required fields - username and name are required
+
+  // Validate required fields
   if (!username || username.trim() === '') {
     return res.status(400).json({ error: "Username is required" });
   }
   if (!name || name.trim() === '') {
     return res.status(400).json({ error: "Name is required" });
   }
-  
+
   try {
-    // Update username and name in the database
+    // Update all relevant fields
     const query = `
-      UPDATE users 
-      SET username = $1, name = $2 
-      WHERE id = $3
-      RETURNING id, username, name;
+      UPDATE users
+      SET
+        username = $1,
+        name = $2,
+        dob = $3,
+        bio = $4,
+        location = $5,
+        gender = $6,
+        email = $7,
+        phonenumber = $8,
+        liked_songs = $9
+      WHERE id = $10
+      RETURNING *;
     `;
-    
-    const updatedUser = await db.one(query, [username.trim(), name.trim(), userId]);
-    
-    // Update session with new username if it changed
+
+    const updatedUser = await db.one(query, [
+      username.trim(),
+      name.trim(),
+      dob || null,
+      bio || null,
+      location || null,
+      gender || null,
+      email || null,
+      phoneNumber || null,
+      liked_songs || null,
+      userId
+    ]);
+
+    // Update session info if username changed
     req.session.user.username = updatedUser.username;
-    
-    res.json({ 
+
+    res.json({
       success: true,
-      id: updatedUser.id,
-      username: updatedUser.username,
-      name: updatedUser.name
+      user: updatedUser
     });
   } catch (err) {
     console.error('Error updating profile:', err);
-    
-    // Check if it's a unique constraint violation (username already exists)
+
     if (err.code === '23505' || err.constraint === 'users_username_key') {
-      return res.status(400).json({ 
-        error: "Username already exists. Please choose a different username." 
+      return res.status(400).json({
+        error: "Username already exists. Please choose a different username."
       });
     }
-    
-    res.status(500).json({ 
-      error: "Error updating profile. Please try again." 
+
+    res.status(500).json({
+      error: "Error updating profile. Please try again."
     });
   }
 });
+
 
 async function matching(user1_id, user2_id){
   const match = await db.oneOrNone(`SELECT * FROM matches 

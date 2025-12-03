@@ -486,125 +486,76 @@
         async function loadProfile() {
             displayMessage("Loading profile data...", false);
             try {
-                const response = await fetch('/api/profile');
-                
-                if (response.status === 401) {
-                    window.location.href = '/login'; 
-                    return;
-                }
+              const res = await fetch('/api/profile');
+              if (!res.ok) throw new Error(`HTTP ${res.status}`);
+              const data = await res.json();
 
-                if (!response.ok) {
-                    throw new Error(`Server returned status: ${response.status}`);
-                }
+              USER_ID_DISPLAY.textContent = data.id || 'N/A';
+              document.getElementById('name').value = data.name || '';
+              // Convert DOB to YYYY-MM-DD format for the <input type="date">
+              const dobValue = data.dob
+                ? new Date(data.dob).toISOString().split('T')[0]
+                : '';
+              document.getElementById('dob').value = dobValue;
 
-                const data = await response.json();
-                
-                if (data.error) {
-                    throw new Error(data.error);
-                }
+              document.getElementById('username').value = data.username || '';
+              //document.getElementById('dob').value = data.dob || '';
+              document.getElementById('bio').value = data.bio || '';
+              document.getElementById('location').value = data.location || '';
+              document.getElementById('gender').value = data.gender || '';
+              document.getElementById('email').value = data.email || '';
+              document.getElementById('phoneNumber').value = data.phonenumber || '';
 
-                document.getElementById('userIdDisplay').textContent = data.id || 'N/A';
-                document.getElementById('name').value = data.name || '';
-                
-                const dobValue = data.dob ? new Date(data.dob).toISOString().split('T')[0] : '';
-                document.getElementById('dob').value = dobValue;
-                
-                document.getElementById('username').value = data.username || '';
-                document.getElementById('bio').value = data.bio || '';
-                document.getElementById('location').value = data.location || '';
-                document.getElementById('gender').value = data.gender || '';
-                
-                // NEW: Load Contact Info
-                document.getElementById('email').value = data.email || '';
-                document.getElementById('phoneNumber').value = data.phoneNumber || '';
-                
-                // Note: Hobbies field removed from load logic
-                // HOBBIES_INPUT.value = data.hobbies || '';
-                
-                // NEW: Hydrate the internal songs array from the DB string
-                likedSongsArray = hydrateSongsArray(data.liked_songs);
+              likedSongsArray = data.liked_songs ? data.liked_songs.split(',').map(s => {
+                const parts = s.split(' by ');
+                return { title: parts[0].trim(), artist: (parts[1] || 'Unknown').trim() };
+              }) : [];
+              renderCurrentSongs();
 
-                // Removed updateTagDisplays(); 
-                renderCurrentSongs(); // Updates the new song list display
+              displayMessage("Profile loaded!", false);
 
-                displayMessage("Profile data loaded successfully!", false);
-
-            } catch (error) {
-                console.error("Error loading profile:", error);
-                displayMessage(`Error loading profile: ${error.message}. Please log in.`, true);
-                document.getElementById('userIdDisplay').textContent = 'Error';
+            } catch (e) {
+              console.error(e);
+              displayMessage("Error loading profile: " + e.message, true);
+              USER_ID_DISPLAY.textContent = 'Error';
             }
-        }
+          }
+
 
         // --- Save Functionality ---
         async function saveProfile() {
             SAVE_BUTTON.disabled = true;
             SAVE_BUTTON.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Saving...';
 
-            const name = document.getElementById('name').value.trim();
-            const dob = document.getElementById('dob').value;
-            const username = document.getElementById('username').value.trim();
-            const bio = document.getElementById('bio').value.trim();
-            const location = document.getElementById('location').value.trim();
-            const gender = document.getElementById('gender').value;
-            
-            // NEW: Get Contact Info
-            const email = document.getElementById('email').value.trim();
-            const phoneNumber = document.getElementById('phoneNumber').value.trim();
-            // Removed: const hobbies = HOBBIES_INPUT.value.trim();
-
-            
-            // NEW: Convert the internal array of objects into the comma-separated string required by the API
-            // The format is "Title by Artist, Title 2 by Artist 2"
-            const liked_songs = likedSongsArray
-                .map(song => `${song.title} by ${song.artist}`)
-                .join(', ');
-
-            if (!name || !username || !dob) {
-                displayMessage("Name, Username, and DOB are required fields.", true);
-                SAVE_BUTTON.disabled = false;
-                SAVE_BUTTON.innerHTML = '<i class="fas fa-save mr-2"></i> Save Profile';
-                return;
-            }
-
             const profileData = {
-                name,
-                username,
-                dob,
-                bio,
-                location,
-                gender,
-                email, // NEW
-                phoneNumber, // NEW
-                // Removed: hobbies,
-                liked_songs // This is the comma-separated string for the DB
+              name: document.getElementById('name').value.trim(),
+              username: document.getElementById('username').value.trim(),
+              dob: document.getElementById('dob').value,
+              bio: document.getElementById('bio').value.trim(),
+              location: document.getElementById('location').value.trim(),
+              gender: document.getElementById('gender').value,
+              email: document.getElementById('email').value.trim(),
+              phoneNumber: document.getElementById('phoneNumber').value.trim(),
+              liked_songs: likedSongsArray.map(s => `${s.title} by ${s.artist}`).join(', ')
             };
-            
+
             try {
-                const response = await fetch('/api/profile', {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(profileData)
-                });
-                
-                const result = await response.json();
-
-                if (!response.ok || result.error) {
-                    throw new Error(result.error || `Failed to save: ${response.statusText}`);
-                }
-
-                console.log("Profile successfully saved!", result);
-                displayMessage("Profile updated successfully!", false);
+              const res = await fetch('/api/profile', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(profileData)
+              });
+              const result = await res.json();
+              if (!res.ok || result.error) throw new Error(result.error || res.statusText);
+              displayMessage("Profile saved successfully!", false);
             } catch (e) {
-                console.error("Error saving profile: ", e);
-                displayMessage("Error saving profile: " + e.message, true);
+              console.error(e);
+              displayMessage("Error saving profile: " + e.message, true);
             } finally {
-                SAVE_BUTTON.disabled = false;
-                SAVE_BUTTON.innerHTML = '<i class="fas fa-save mr-2"></i> Save Profile';
+              SAVE_BUTTON.disabled = false;
+              SAVE_BUTTON.innerHTML = '<i class="fas fa-save mr-2"></i> Save Profile';
             }
-        }
+          }
 
         // --- Simulated Functionality (Change Password) ---
         function changePassword(event) {
