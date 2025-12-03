@@ -795,15 +795,25 @@ app.get('/api/user/matches', async (req, res) => {
     );
     
     // Format confirmed matches
-    const formattedConfirmed = confirmedMatches.map(match => ({
-      id: match.other_user_id,
-      username: match.username || 'Unknown',
-      name: match.name || match.username || 'Unknown',
-      age: match.age || '?',
-      photoUrl: match.profile_picture_url || null,
-      status: 'CONFIRMED',
-      matchScore: '100%' // Since they're in the same cluster
-    }));
+    const formattedConfirmed = await Promise.all(
+      confirmedMatches.map(async (match) => {
+        let matchScore = '??%';
+        const similarity = await calculateSimilarity(loggedInUserId, match.other_user_id);
+        if (similarity !== null && similarity !== undefined) {
+          matchScore = `${Math.round(similarity)}%`;
+        }
+        
+        return {
+          id: match.other_user_id,
+          username: match.username || 'Unknown',
+          name: match.name || match.username || 'Unknown',
+          age: match.age || '?',
+          photoUrl: match.profile_picture_url || null,
+          status: 'CONFIRMED',
+          matchScore: matchScore
+        };
+      })
+    );
     
     // Format sent requests
     const formattedSent = sentRequests.map(match => ({
@@ -858,6 +868,7 @@ app.get('/api/match/next', async (req, res) => {
           SELECT 1 FROM matches m
           WHERE ((m.user1_id = $2 AND m.user2_id = u.id)
              OR (m.user2_id = $2 AND m.user1_id = u.id))
+             AND (m.matched = true OR m.initiated_by_user_id = $2)
         )
       ORDER BY u.id
       LIMIT 1
@@ -876,10 +887,11 @@ app.get('/api/match/next', async (req, res) => {
           AND u.cluster_id IS NOT NULL
           AND u.id != $2
           AND NOT EXISTS (
-            SELECT 1 FROM matches m
-            WHERE ((m.user1_id = $2 AND m.user2_id = u.id)
-               OR (m.user2_id = $2 AND m.user1_id = u.id))
-          )
+          SELECT 1 FROM matches m
+          WHERE ((m.user1_id = $2 AND m.user2_id = u.id)
+             OR (m.user2_id = $2 AND m.user1_id = u.id))
+             AND (m.matched = true OR m.initiated_by_user_id = $2)
+        )
         ORDER BY u.id
         LIMIT 1
       `, [clusterId, loggedInUserId]);
@@ -1006,12 +1018,10 @@ app.post('/api/match/rate', async (req, res) => {
     } else {
       // No existing match - creating first like
       if (rating === 'like') {
-        // Create new match record with matched = false (only logged-in user has liked)
-        // This will appear in "requests sent" until the other user likes back
         await db.none(`
-          INSERT INTO matches (user1_id, user2_id, matched)
-          VALUES ($1, $2, false)
-        `, [user1_id, user2_id]);
+          INSERT INTO matches (user1_id, user2_id, matched, initiated_by_user_id)
+          VALUES ($1, $2, false, $3)
+        `, [user1_id, user2_id, loggedInUserId]);
       }
       // If it's a dislike and no match exists, nothing to do
     }
