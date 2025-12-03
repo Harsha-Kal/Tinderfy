@@ -378,7 +378,8 @@ WHERE uts.user_id = $1;`, [userId]);
               song.id
             ]
           );
-          const userNumber = await db.oneValue('SELECT count(*) FROM users');
+          const result = await db.one('SELECT count(*)::int AS user_count FROM users');
+          const userNumber = result.user_count;
           if(userNumber < 4){
             await K_clustering(userNumber);
           }
