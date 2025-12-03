@@ -361,7 +361,6 @@ WHERE uts.user_id = $1;`, [userId]);
     }
     for(const song of songs){
       if(song.acousticness == null || song.acousticness == undefined){
-        //I will rewrite so it takes spotify_id from db intead of running getSpotifyId again
         const spotifyId = await getSpotifyId(song.title, song.artist);
         if(!spotifyId){
           console.log(`Could not find Spotify ID for "${song.title}" by "${song.artist}"`);
@@ -389,7 +388,7 @@ WHERE uts.user_id = $1;`, [userId]);
         }else{
           console.error(`Failed to get anaylsis for ${song.title}`);
         }
-        await new Promise(resolve => setTimeout(resolve, 5000));
+        await new Promise(resolve => setTimeout(resolve, 10000));
       }
     }
     const updatedSongs = await db.any(`SELECT s.acousticness, s.danceability, s.energy, s.instrumentalness, s.happiness
@@ -587,7 +586,6 @@ app.get('/api/profile', async (req, res) => {
         gender,
         email,
         phonenumber,
-        liked_songs,
         profile_picture_url,
         average_song_acousticness,
         average_song_danceability,
@@ -601,7 +599,23 @@ app.get('/api/profile', async (req, res) => {
 
     const user = await db.one(query, [userId]);
 
-    res.json(user);
+    // Get user's liked songs from users_to_songs table
+    const likedSongs = await db.any(`
+      SELECT s.title, s.artist
+      FROM songs s
+      JOIN users_to_songs uts ON s.id = uts.song_id
+      WHERE uts.user_id = $1
+      ORDER BY uts.id
+    `, [userId]);
+
+    // Format songs as comma-separated string: "Title by Artist, Title 2 by Artist 2"
+    const likedSongsString = likedSongs.map(song => `${song.title} by ${song.artist}`).join(', ');
+
+    // Return user data including liked songs
+    res.json({
+      ...user,
+      liked_songs: likedSongsString || ''
+    });
   } catch (err) {
     console.error('Error fetching profile:', err);
     res.status(500).json({ error: "Error fetching profile. Please try again." });
@@ -691,6 +705,154 @@ app.put('/api/profile', async (req, res) => {
   }
 });
 
+app.post('/api/profile/songs', async (req, res) => {
+  if(!req.session.user){
+    return res.status(401).json({error: "Not authenticated"});
+  }
+  const {title, artist} = req.body;
+  const userId = req.session.user.id;
+  
+  const songTitle = title.trim();
+  const songArtist = artist.trim();
+
+  //Ensures both fields are not empty
+  if(!songTitle || !songArtist){
+    return res.status(400).json({ 
+      error: "Both song title and artist name are required" 
+    });
+  }
+  
+  try{
+    console.log(`Validating song: "${songTitle}" by "${songArtist}"`);
+    const spotifyId = await getSpotifyId(songTitle, songArtist);
+    
+    //ensures that the API returns a spotify ID
+    if(!spotifyId){
+      return res.status(404).json({ 
+        error: `Could not find "${songTitle}" by ${songArtist} on Spotify`
+      });
+    }
+    
+    //console.log(`Song Found. ID: ${spotifyId}`);
+    
+    //Checks to see if song is already in db
+    let song = await db.oneOrNone(
+      'SELECT id, spotify_id FROM songs WHERE LOWER(title) = LOWER($1) AND LOWER(artist) = LOWER($2)', [songTitle, songArtist]
+    );
+    let songId;
+
+    if(song){
+      //Song exists
+      songId = song.id;
+      //console.log('Song already exists in DB');
+      //Updates spotify id in db if not already inserted
+      if (!song.spotify_id) {
+        await db.none(
+          'UPDATE songs SET spotify_id = $1 WHERE id = $2', [spotifyId, songId]
+        );
+      }
+    }else{
+      //Song does not exist, puts song into db
+      const newSong = await db.one(
+        'INSERT INTO songs (title, artist, spotify_id) VALUES ($1, $2, $3) RETURNING id', [songTitle, songArtist, spotifyId]
+      );
+      songId = newSong.id;
+    } 
+
+    //Sees if user has song already liked
+    const userHasSongLiked = await db.oneOrNone(
+      'SELECT id FROM users_to_songs WHERE user_id = $1 AND song_id = $2', [userId, songId]
+    );
+
+    if(userHasSongLiked){
+      return res.status(409).json({ 
+      error: 'You have already added this song to your profile'
+      });
+    }
+
+    //Insert data into linking table
+    await db.none(
+      'INSERT INTO users_to_songs (user_id, song_id) VALUES ($1, $2)', [userId, songId]
+    );
+    console.log('Added song to user profile');
+    processUserSongs(userId);
+    
+    res.json({ 
+      success: true, 
+      message: 'Song added and validated with Spotify!',
+      song: {
+        title: songTitle,
+        artist: songArtist,
+        spotifyId: spotifyId
+      }
+    });
+    
+  }catch(err){
+    console.error('Error adding song:', err);
+    
+    if(err.message === 'You have already added this song to your profile'){
+      return res.status(409).json({ error: err.message });
+    }
+    
+    if(err.code === '403'){
+      return res.status(409).json({ 
+        error: 'This song is already in your profile' 
+      });
+    }
+    
+    res.status(500).json({ 
+      error: 'Error adding song. Please try again.' 
+    });
+  }
+});
+
+// DELETE /api/profile/songs - Remove a song from user's profile
+app.delete('/api/profile/songs', async (req, res) => {
+  // Check if the user is logged in
+  if (!req.session.user) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+  
+  const { title, artist } = req.body;
+  const userId = req.session.user.id;
+  
+  if (!title || !artist) {
+    return res.status(400).json({ error: "Song title and artist are required" });
+  }
+  
+  try {
+    // Find the song
+    const song = await db.oneOrNone(
+      'SELECT id FROM songs WHERE LOWER(title) = LOWER($1) AND LOWER(artist) = LOWER($2)',
+      [title.trim(), artist.trim()]
+    );
+    
+    if (!song) {
+      return res.status(404).json({ error: "Song not found" });
+    }
+    
+    // Remove the link between user and song
+    const result = await db.result(
+      'DELETE FROM users_to_songs WHERE user_id = $1 AND song_id = $2',
+      [userId, song.id]
+    );
+    
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: "Song not in your profile" });
+    }
+    
+    res.json({ 
+      success: true, 
+      message: 'Song removed successfully' 
+    });
+    
+  } catch (err) {
+    console.error('Error removing song:', err);
+    res.status(500).json({ 
+      error: 'Error removing song. Please try again.' 
+    });
+  }
+});
 
 async function matching(user1_id, user2_id){
   const match = await db.oneOrNone(`SELECT * FROM matches 
