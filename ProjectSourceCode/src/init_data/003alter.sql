@@ -5,4 +5,6 @@ ALTER TABLE matches
 ALTER TABLE matches
     ADD CONSTRAINT user_order CHECK (user1_id < user2_id);
 ALTER TABLE matches
-    ADD COLUMN matched BOOLEAN DEFAULT FALSE;
+    ADD COLUMN IF NOT EXISTS matched BOOLEAN DEFAULT FALSE;
+ALTER TABLE matches
+    ADD COLUMN IF NOT EXISTS initiated_by_user_id INTEGER;

@@ -97,12 +97,23 @@
             </div>
             <p id="noSent" class="text-gray-500 mt-3 hidden">You haven't sent any likes yet.</p>
         </section>
+        <!-- 2. Requests Received -->
+        <section class="mb-8">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4 border-b border-gray-200 pb-1">
+                Requests Received <span class="text-sm text-gray-500">(They liked you!)</span>
+            </h2>
+            <div id="receivedRequestsList" class="space-y-3">
+                <!-- Data will be dynamically loaded here -->
+            </div>
+            <p id="noReceived" class="text-gray-500 mt-3 hidden">No pending requests received.</p>
+        </section>
 
     </div>
 
     <script>
         const confirmedList = document.getElementById('confirmedMatchesList');
         const sentList = document.getElementById('sentRequestsList');
+        const receivedList = document.getElementById('receivedRequestsList');
 
         /**
          * Placeholder function to handle accepting or rejecting a match request.
@@ -132,18 +143,21 @@
 
         /**
          * Renders all match data (Confirmed, Sent, Received) into their respective lists.
-         * @param {Object} matchesData - Object with confirmed and sent arrays from the server.
+         * @param {Object} matchesData - Object with confirmed, sent, and received arrays from the server.
          */
         function renderMatches(matchesData) {
             // Clear lists and reset visibility
             confirmedList.innerHTML = '';
             sentList.innerHTML = '';
+            receivedList.innerHTML = '';
             
             let confirmedCount = 0;
             let sentCount = 0;
+            let receivedCount = 0;
 
             const confirmed = matchesData.confirmed || [];
             const sent = matchesData.sent || [];
+            const received = matchesData.received || [];
 
             // Render confirmed matches
             confirmed.forEach(match => {
@@ -199,9 +213,38 @@
                 sentList.appendChild(card);
             });
 
+            // Render received requests (matched = false)
+            received.forEach(match => {
+                receivedCount++;
+                const card = document.createElement('div');
+                card.className = 'match-card';
+                
+                const photoUrl = match.photoUrl || 'https://placehold.co/40x40/cccccc/333333?text=?';
+                
+                // Show name prominently, username below if different
+                const nameDisplay = match.name ? match.name : match.username || 'Unknown';
+                const usernameDisplay = match.name && match.username && match.name !== match.username ? `@${match.username}` : '';
+                
+                card.innerHTML = `
+                    <div class="flex items-center space-x-4">
+                        <img src="${photoUrl}" alt="Photo" class="w-10 h-10 rounded-full object-cover border-2 border-gray-300">
+                        <div>
+                            <p class="font-bold text-gray-800">${nameDisplay} <span class="text-sm text-gray-500 font-normal">(${match.age || '?'})</span></p>
+                            ${usernameDisplay ? `<p class="text-xs text-gray-500">${usernameDisplay}</p>` : ''}
+                        </div>
+                    </div>
+                    <div class="flex flex-col items-end">
+                        <span class="status-badge status-received mb-1">RECEIVED</span>
+                    </div>
+                `;
+                
+                receivedList.appendChild(card);
+            });
+
             // Toggle "No Data" messages based on actual counts
             document.getElementById('noConfirmed').classList.toggle('hidden', confirmedCount > 0);
             document.getElementById('noSent').classList.toggle('hidden', sentCount > 0);
+            document.getElementById('noReceived').classList.toggle('hidden', receivedCount > 0);
         }
 
         // Fetch matches from API and render them
@@ -223,7 +266,7 @@
             } catch (error) {
                 console.error('Error fetching matches:', error);
                 // Still render empty to show "No Data" messages
-                renderMatches({ confirmed: [], sent: [] });
+                renderMatches({ confirmed: [], sent: [], received: [] });
             }
         });
     </script>
