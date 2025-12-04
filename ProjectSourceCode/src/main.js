@@ -1029,7 +1029,7 @@ app.get('/api/match/next', async (req, res) => {
 
     // Step 1: Try to get users with the same cluster_id first
     let availableUsers = await db.any(`
-      SELECT u.id, u.username, u.name, u.age, u.gender, u.profile_picture_url, u.email, u.cluster_id,
+      SELECT u.id, u.username, u.name, u.age, u.gender, u.profile_picture_url, u.email, u.cluster_id, u.bio, u.location,
              u.average_song_acousticness, u.average_song_danceability, u.average_song_energy, u.average_song_instrumentalness, u.average_song_happiness
       FROM users u
       WHERE u.cluster_id = $1
@@ -1054,7 +1054,7 @@ app.get('/api/match/next', async (req, res) => {
     if (availableUsers.length === 0) {
       isSameCluster = false;
       availableUsers = await db.any(`
-        SELECT u.id, u.username, u.name, u.age, u.gender, u.profile_picture_url, u.email, u.cluster_id,
+        SELECT u.id, u.username, u.name, u.age, u.gender, u.profile_picture_url, u.email, u.cluster_id, u.bio, u.location,
                u.average_song_acousticness, u.average_song_danceability, u.average_song_energy, u.average_song_instrumentalness, u.average_song_happiness
         FROM users u
         WHERE u.cluster_id != $1
@@ -1129,7 +1129,7 @@ app.get('/api/match/next', async (req, res) => {
       name: displayName,
       age: user.age || '?',
       location: user.location || 'Location not set',
-      bio: `Hey! I'm ${displayNameForBio}. Music connects us! 🎵`,
+      bio: user.bio || `Hey! I'm ${displayNameForBio}. Music connects us! 🎵`,
       photoUrl: user.profile_picture_url || null,
       matchScore: matchScore,
       hobbies: [], // Empty array for now since not stored in DB
