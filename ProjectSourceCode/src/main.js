@@ -393,6 +393,43 @@ WHERE uts.user_id = $1;`, [userId]);
       }
     }
     const updatedSongs = await db.any(`SELECT s.acousticness, s.danceability, s.energy, s.instrumentalness, s.happiness
+    if(songs.length == 0){
+      console.error('No songs found from user');
+    }
+    for(const song of songs){
+      if(song.acousticness == null || song.acousticness == undefined){
+        const spotifyId = await getSpotifyId(song.title, song.artist);
+        if(!spotifyId){
+          console.log(`Could not find Spotify ID for "${song.title}" by "${song.artist}"`);
+          continue;
+        }
+        const analysis = await getTrackFeatures(spotifyId);
+        if(analysis.acousticness !== null && analysis.acousticness !== undefined){
+          await db.none('UPDATE songs SET acousticness = $1, danceability = $2, energy = $3, instrumentalness = $4, happiness = $5 WHERE id = $6', 
+            [
+              analysis.acousticness,
+              analysis.danceability,
+              analysis.energy,
+              analysis.instrumentalness,
+              analysis.happiness,
+              song.id
+            ]
+          );
+          const result = await db.one('SELECT count(*)::int AS user_count FROM users');
+          const userNumber = result.user_count;
+          if(userNumber < 4){
+            await K_clustering(userNumber);
+          }
+          else{
+            await K_clustering(4);
+          }
+        }else{
+          console.error(`Failed to get anaylsis for ${song.title}`);
+        }
+        await new Promise(resolve => setTimeout(resolve, 10000));
+      }
+    }
+    const updatedSongs = await db.any(`SELECT s.acousticness, s.danceability, s.energy, s.instrumentalness, s.happiness
 FROM songs s
 JOIN users_to_songs uts ON s.id = uts.song_id
 WHERE uts.user_id = $1
@@ -621,6 +658,58 @@ app.get('/api/profile', async (req, res) => {
     console.error('Error fetching profile:', err);
     res.status(500).json({ error: "Error fetching profile. Please try again." });
   }
+  if (!req.session.user) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+
+  const userId = req.session.user.id;
+
+  try {
+    const query = `
+      SELECT 
+        id,
+        username,
+        name,
+        dob,
+        bio,
+        location,
+        gender,
+        email,
+        phonenumber,
+        profile_picture_url,
+        average_song_acousticness,
+        average_song_danceability,
+        average_song_energy,
+        average_song_instrumentalness,
+        average_song_happiness,
+        cluster_id
+      FROM users
+      WHERE id = $1;
+    `;
+
+    const user = await db.one(query, [userId]);
+
+    // Get user's liked songs from users_to_songs table
+    const likedSongs = await db.any(`
+      SELECT s.title, s.artist
+      FROM songs s
+      JOIN users_to_songs uts ON s.id = uts.song_id
+      WHERE uts.user_id = $1
+      ORDER BY uts.id
+    `, [userId]);
+
+    // Format songs as comma-separated string: "Title by Artist, Title 2 by Artist 2"
+    const likedSongsString = likedSongs.map(song => `${song.title} by ${song.artist}`).join(', ');
+
+    // Return user data including liked songs
+    res.json({
+      ...user,
+      liked_songs: likedSongsString || ''
+    });
+  } catch (err) {
+    console.error('Error fetching profile:', err);
+    res.status(500).json({ error: "Error fetching profile. Please try again." });
+  }
 });
 
 
@@ -805,6 +894,185 @@ app.post('/api/profile/songs', async (req, res) => {
       error: 'Error adding song. Please try again.' 
     });
   }
+  // Check if the user is logged in
+  if (!req.session.user) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+
+  const {
+    username,
+    name,
+    dob,
+    bio,
+    location,
+    gender,
+    email,
+    phoneNumber,
+    liked_songs
+  } = req.body;
+
+  const userId = req.session.user.id;
+
+  // Validate required fields
+  if (!username || username.trim() === '') {
+    return res.status(400).json({ error: "Username is required" });
+  }
+  if (!name || name.trim() === '') {
+    return res.status(400).json({ error: "Name is required" });
+  }
+
+  try {
+    // Update all relevant fields
+    const query = `
+      UPDATE users
+      SET
+        username = $1,
+        name = $2,
+        dob = $3,
+        bio = $4,
+        location = $5,
+        gender = $6,
+        email = $7,
+        phonenumber = $8,
+        liked_songs = $9
+      WHERE id = $10
+      RETURNING *;
+    `;
+
+    const updatedUser = await db.one(query, [
+      username.trim(),
+      name.trim(),
+      dob || null,
+      bio || null,
+      location || null,
+      gender || null,
+      email || null,
+      phoneNumber || null,
+      liked_songs || null,
+      userId
+    ]);
+
+    // Update session info if username changed
+    req.session.user.username = updatedUser.username;
+
+    res.json({
+      success: true,
+      user: updatedUser
+    });
+  } catch (err) {
+    console.error('Error updating profile:', err);
+
+    if (err.code === '23505' || err.constraint === 'users_username_key') {
+      return res.status(400).json({
+        error: "Username already exists. Please choose a different username."
+      });
+    }
+
+    res.status(500).json({
+      error: "Error updating profile. Please try again."
+    });
+  }
+});
+
+app.post('/api/profile/songs', async (req, res) => {
+  if(!req.session.user){
+    return res.status(401).json({error: "Not authenticated"});
+  }
+  const {title, artist} = req.body;
+  const userId = req.session.user.id;
+  
+  const songTitle = title.trim();
+  const songArtist = artist.trim();
+
+  //Ensures both fields are not empty
+  if(!songTitle || !songArtist){
+    return res.status(400).json({ 
+      error: "Both song title and artist name are required" 
+    });
+  }
+  
+  try{
+    console.log(`Validating song: "${songTitle}" by "${songArtist}"`);
+    const spotifyId = await getSpotifyId(songTitle, songArtist);
+    
+    //ensures that the API returns a spotify ID
+    if(!spotifyId){
+      return res.status(404).json({ 
+        error: `Could not find "${songTitle}" by ${songArtist} on Spotify`
+      });
+    }
+    
+    //console.log(`Song Found. ID: ${spotifyId}`);
+    
+    //Checks to see if song is already in db
+    let song = await db.oneOrNone(
+      'SELECT id, spotify_id FROM songs WHERE LOWER(title) = LOWER($1) AND LOWER(artist) = LOWER($2)', [songTitle, songArtist]
+    );
+    let songId;
+
+    if(song){
+      //Song exists
+      songId = song.id;
+      //console.log('Song already exists in DB');
+      //Updates spotify id in db if not already inserted
+      if (!song.spotify_id) {
+        await db.none(
+          'UPDATE songs SET spotify_id = $1 WHERE id = $2', [spotifyId, songId]
+        );
+      }
+    }else{
+      //Song does not exist, puts song into db
+      const newSong = await db.one(
+        'INSERT INTO songs (title, artist, spotify_id) VALUES ($1, $2, $3) RETURNING id', [songTitle, songArtist, spotifyId]
+      );
+      songId = newSong.id;
+    } 
+
+    //Sees if user has song already liked
+    const userHasSongLiked = await db.oneOrNone(
+      'SELECT id FROM users_to_songs WHERE user_id = $1 AND song_id = $2', [userId, songId]
+    );
+
+    if(userHasSongLiked){
+      return res.status(409).json({ 
+      error: 'You have already added this song to your profile'
+      });
+    }
+
+    //Insert data into linking table
+    await db.none(
+      'INSERT INTO users_to_songs (user_id, song_id) VALUES ($1, $2)', [userId, songId]
+    );
+    console.log('Added song to user profile');
+    processUserSongs(userId);
+    
+    res.json({ 
+      success: true, 
+      message: 'Song added and validated with Spotify!',
+      song: {
+        title: songTitle,
+        artist: songArtist,
+        spotifyId: spotifyId
+      }
+    });
+    
+  }catch(err){
+    console.error('Error adding song:', err);
+    
+    if(err.message === 'You have already added this song to your profile'){
+      return res.status(409).json({ error: err.message });
+    }
+    
+    if(err.code === '403'){
+      return res.status(409).json({ 
+        error: 'This song is already in your profile' 
+      });
+    }
+    
+    res.status(500).json({ 
+      error: 'Error adding song. Please try again.' 
+    });
+  }
 });
 
 // DELETE /api/profile/songs - Remove a song from user's profile
@@ -853,6 +1121,50 @@ app.delete('/api/profile/songs', async (req, res) => {
       error: 'Error removing song. Please try again.' 
     });
   }
+  // Check if the user is logged in
+  if (!req.session.user) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+  
+  const { title, artist } = req.body;
+  const userId = req.session.user.id;
+  
+  if (!title || !artist) {
+    return res.status(400).json({ error: "Song title and artist are required" });
+  }
+  
+  try {
+    // Find the song
+    const song = await db.oneOrNone(
+      'SELECT id FROM songs WHERE LOWER(title) = LOWER($1) AND LOWER(artist) = LOWER($2)',
+      [title.trim(), artist.trim()]
+    );
+    
+    if (!song) {
+      return res.status(404).json({ error: "Song not found" });
+    }
+    
+    // Remove the link between user and song
+    const result = await db.result(
+      'DELETE FROM users_to_songs WHERE user_id = $1 AND song_id = $2',
+      [userId, song.id]
+    );
+    
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: "Song not in your profile" });
+    }
+    
+    res.json({ 
+      success: true, 
+      message: 'Song removed successfully' 
+    });
+    
+  } catch (err) {
+    console.error('Error removing song:', err);
+    res.status(500).json({ 
+      error: 'Error removing song. Please try again.' 
+    });
+  }
 });
 
 async function matching(user1_id, user2_id){
@@ -995,6 +1307,102 @@ app.get('/api/user/matches', async (req, res) => {
     console.error('Error fetching user matches:', err);
     res.status(500).json({ error: "Error loading matches. Please try again." });
   }
+  // Check if the user is logged in
+  if (!req.session.user) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+  
+  const loggedInUserId = req.session.user.id;
+  
+  try {
+    // Get confirmed matches (matched = true)
+    const confirmedMatches = await db.any(
+      `SELECT 
+        m.user1_id,
+        m.user2_id,
+        m.matched,
+        u.id AS other_user_id,
+        u.username,
+        u.name,
+        u.age,
+        u.profile_picture_url
+       FROM matches m
+       JOIN users u
+         ON u.id = CASE
+                    WHEN m.user1_id = $1 THEN m.user2_id
+                    ELSE m.user1_id
+                  END
+       WHERE (m.user1_id = $1 OR m.user2_id = $1)
+         AND m.matched = TRUE
+       ORDER BY m.user1_id, m.user2_id`,
+      [loggedInUserId]
+    );
+    
+    // Get pending requests sent (matched = false)
+    // These are matches where the logged-in user is involved but matched is false
+    // Note: We can't perfectly determine who initiated without additional tracking,
+    // so we'll show all unmatched requests where the logged-in user is involved
+    const sentRequests = await db.any(
+      `SELECT 
+        m.user1_id,
+        m.user2_id,
+        m.matched,
+        u.id AS other_user_id,
+        u.username,
+        u.name,
+        u.age,
+        u.profile_picture_url
+       FROM matches m
+       JOIN users u
+         ON u.id = CASE
+                    WHEN m.user1_id = $1 THEN m.user2_id
+                    ELSE m.user1_id
+                  END
+       WHERE (m.user1_id = $1 OR m.user2_id = $1)
+         AND m.matched = FALSE
+       ORDER BY m.user1_id, m.user2_id`,
+      [loggedInUserId]
+    );
+    
+    // Format confirmed matches
+    const formattedConfirmed = await Promise.all(
+      confirmedMatches.map(async (match) => {
+        let matchScore = '??%';
+        const similarity = await calculateSimilarity(loggedInUserId, match.other_user_id);
+        if (similarity !== null && similarity !== undefined) {
+          matchScore = `${Math.round(similarity)}%`;
+        }
+        
+        return {
+          id: match.other_user_id,
+          username: match.username || 'Unknown',
+          name: match.name || match.username || 'Unknown',
+          age: match.age || '?',
+          photoUrl: match.profile_picture_url || null,
+          status: 'CONFIRMED',
+          matchScore: matchScore
+        };
+      })
+    );
+    
+    // Format sent requests
+    const formattedSent = sentRequests.map(match => ({
+      id: match.other_user_id,
+      username: match.username || 'Unknown',
+      name: match.name || match.username || 'Unknown',
+      age: match.age || '?',
+      photoUrl: match.profile_picture_url || null,
+      status: 'SENT_PENDING'
+    }));
+    
+    res.json({
+      confirmed: formattedConfirmed,
+      sent: formattedSent
+    });
+  } catch (err) {
+    console.error('Error fetching user matches:', err);
+    res.status(500).json({ error: "Error loading matches. Please try again." });
+  }
 });
 
 // GET /api/match/next - Fetch next user (same cluster first, then different clusters)
@@ -1131,6 +1539,134 @@ app.get('/api/match/next', async (req, res) => {
     console.error('Error fetching next match:', err);
     res.status(500).json({ error: "Error loading matches. Please try again." });
   }
+  // Check if the user is logged in
+  if (!req.session.user) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+  
+  const loggedInUserId = req.session.user.id;
+  
+  try {
+    // First, get the logged-in user's cluster_id and feature data
+    const currentUser = await db.oneOrNone(
+      'SELECT cluster_id, average_song_acousticness, average_song_danceability, average_song_energy, average_song_instrumentalness, average_song_happiness FROM users WHERE id = $1',
+      [loggedInUserId]
+    );
+    
+    if (!currentUser || currentUser.cluster_id === null) {
+      return res.status(204).json({ message: "Please complete your profile to start matching." });
+    }
+    
+    const clusterId = currentUser.cluster_id;
+    
+    // Step 1: Try to get users with the same cluster_id first
+    let availableUsers = await db.any(`
+      SELECT u.id, u.username, u.name, u.age, u.gender, u.profile_picture_url, u.email, u.cluster_id,
+             u.average_song_acousticness, u.average_song_danceability, u.average_song_energy, u.average_song_instrumentalness, u.average_song_happiness
+      FROM users u
+      WHERE u.cluster_id = $1
+        AND u.id != $2
+        AND NOT EXISTS (
+          SELECT 1 FROM matches m
+          WHERE ((m.user1_id = $2 AND m.user2_id = u.id)
+             OR (m.user2_id = $2 AND m.user1_id = u.id))
+             AND (m.matched = true OR m.initiated_by_user_id = $2)
+        )
+      ORDER BY u.id
+      LIMIT 1
+    `, [clusterId, loggedInUserId]);
+    
+    let isSameCluster = true;
+    
+    // Step 2: If no same-cluster users, get users from different clusters
+    if (availableUsers.length === 0) {
+      isSameCluster = false;
+      availableUsers = await db.any(`
+        SELECT u.id, u.username, u.name, u.age, u.gender, u.profile_picture_url, u.email, u.cluster_id,
+               u.average_song_acousticness, u.average_song_danceability, u.average_song_energy, u.average_song_instrumentalness, u.average_song_happiness
+        FROM users u
+        WHERE u.cluster_id != $1
+          AND u.cluster_id IS NOT NULL
+          AND u.id != $2
+          AND NOT EXISTS (
+          SELECT 1 FROM matches m
+          WHERE ((m.user1_id = $2 AND m.user2_id = u.id)
+             OR (m.user2_id = $2 AND m.user1_id = u.id))
+             AND (m.matched = true OR m.initiated_by_user_id = $2)
+        )
+        ORDER BY u.id
+        LIMIT 1
+      `, [clusterId, loggedInUserId]);
+    }
+    
+    if (availableUsers.length === 0) {
+      return res.status(204).json({ message: "No more profiles available. Check back later!" });
+    }
+    
+    const user = availableUsers[0];
+    
+    // Debug logging to see what data we're getting
+    console.log('User data from database:', {
+      id: user.id,
+      username: user.username,
+      name: user.name,
+      age: user.age,
+      email: user.email,
+      cluster_id: user.cluster_id,
+      isSameCluster: isSameCluster
+    });
+    
+    // Calculate match score using similarity for all users (same cluster and different cluster)
+    let matchScore = "??%"; // Default fallback
+    const similarity = await calculateSimilarity(loggedInUserId, user.id);
+    if (similarity !== null && similarity !== undefined) {
+      matchScore = `${Math.round(similarity)}%`;
+    }
+    
+    // Get user's liked songs from users_to_songs table
+    const likedSongs = await db.any(`
+      SELECT s.title, s.artist
+      FROM songs s
+      JOIN users_to_songs uts ON s.id = uts.song_id
+      WHERE uts.user_id = $1
+      LIMIT 5
+    `, [user.id]);
+    
+    // Format songs as array of strings
+    const likedSongsArray = likedSongs.map(song => 
+      song.title && song.artist ? `${song.title} by ${song.artist}` : `${song.title || song.artist || ''}`
+    );
+    
+    // Determine display name - prefer name, fallback to username, then Anonymous
+    // Handle null, undefined, and empty strings properly
+    const userName = user.name && typeof user.name === 'string' && user.name.trim() ? user.name.trim() : null;
+    const userUsername = user.username && typeof user.username === 'string' && user.username.trim() ? user.username.trim() : null;
+    
+    const displayName = userName || userUsername || 'Anonymous';
+    const displayNameForBio = userName || userUsername || 'Music enthusiast';
+    
+    console.log('Display name resolved to:', displayName, '(from name:', userName, ', username:', userUsername, ')');
+    
+    // Build profile object matching what the frontend expects
+    const profile = {
+      id: user.id,
+      name: displayName,
+      age: user.age || '?',
+      location: user.location || 'Location not set',
+      bio: `Hey! I'm ${displayNameForBio}. Music connects us! 🎵`,
+      photoUrl: user.profile_picture_url || null,
+      matchScore: matchScore,
+      hobbies: [], // Empty array for now since not stored in DB
+      likedSongs: likedSongsArray.length > 0 ? likedSongsArray : ['No songs added yet']
+    };
+    
+    console.log('Final profile object:', JSON.stringify(profile, null, 2));
+    
+    res.json(profile);
+  } catch (err) {
+    console.error('Error fetching next match:', err);
+    res.status(500).json({ error: "Error loading matches. Please try again." });
+  }
 });
 
 // POST /api/match/rate - Record like/dislike action
@@ -1209,6 +1745,68 @@ app.post('/api/match/rate', async (req, res) => {
     console.error('Error recording rating:', err);
     res.status(500).json({ error: "Error recording rating. Please try again." });
   }
+  // Check if the user is logged in
+  if (!req.session.user) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+  
+  const loggedInUserId = req.session.user.id;
+  const { profileId, rating } = req.body;
+  
+  if (!profileId || !rating) {
+    return res.status(400).json({ error: "profileId and rating are required" });
+  }
+  
+  if (rating !== 'like' && rating !== 'dislike') {
+    return res.status(400).json({ error: "rating must be 'like' or 'dislike'" });
+  }
+  
+  try {
+    // Ensure user1_id < user2_id for consistent ordering
+    const user1_id = Math.min(loggedInUserId, profileId);
+    const user2_id = Math.max(loggedInUserId, profileId);
+    
+    // Check if match already exists
+    const existingMatch = await db.oneOrNone(`
+      SELECT * FROM matches 
+      WHERE user1_id = $1 AND user2_id = $2
+    `, [user1_id, user2_id]);
+    
+    if (existingMatch) {
+      // Match already exists - check the current matched status
+      if (rating === 'like') {
+        // If matched is currently false, this is the second like - make it mutual!
+        // If matched is already true, both users already like each other - no change needed
+        if (existingMatch.matched === false) {
+          await db.none(`
+            UPDATE matches 
+            SET matched = true
+            WHERE user1_id = $1 AND user2_id = $2
+          `, [user1_id, user2_id]);
+        }
+      } else {
+        // Dislike - remove the match record entirely
+        await db.none(`
+          DELETE FROM matches 
+          WHERE user1_id = $1 AND user2_id = $2
+        `, [user1_id, user2_id]);
+      }
+    } else {
+      // No existing match - creating first like
+      if (rating === 'like') {
+        await db.none(`
+          INSERT INTO matches (user1_id, user2_id, matched, initiated_by_user_id)
+          VALUES ($1, $2, false, $3)
+        `, [user1_id, user2_id, loggedInUserId]);
+      }
+      // If it's a dislike and no match exists, nothing to do
+    }
+    
+    res.json({ success: true, message: `User ${rating} recorded successfully` });
+  } catch (err) {
+    console.error('Error recording rating:', err);
+    res.status(500).json({ error: "Error recording rating. Please try again." });
+  }
 });
 
 // Start the server

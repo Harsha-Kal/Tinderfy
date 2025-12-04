@@ -220,30 +220,38 @@
                 <i class="fas fa-edit mr-2"></i> Edit Profile
             </button>
         </div>
-    </div>
-    
+    </div>    
+
     <div id="songModal" class="modal-overlay fixed inset-0 flex items-center justify-center hidden">
         <div class="modal-content profile-card w-11/12 md:w-1/3 p-6 rounded-xl shadow-2xl space-y-6">
-            <h3 class="text-2xl font-bold text-gray-800 border-b border-gray-300 pb-2">Add a Favorite Song</h3>
-            
+            <h3 class="text-2xl font-bold text-gray-800 border-b border-gray-300 pb-2">
+                <i class="fas fa-search mr-2 text-[#2D9B59]"></i>Add a Favorite Song</h3>
+        
+            <p class="text-sm text-gray-600">
+                <i class="fas fa-info-circle mr-1"></i>
+                We'll verify this song exists on Spotify before adding it to your profile.
+            </p>
+        
             <div>
-                <label for="modalSongTitle" class="block text-sm font-medium mb-1">Song Name</label>
-                <input type="text" id="modalSongTitle" placeholder="Bohemian Rhapsody" class="input-field w-full p-3 rounded-lg">
+                <label for="modalSongTitle" class="block text-sm font-medium mb-1">Song Title<span class="text-red-500">*</span>
+                </label>
+                <input type="text" id="modalSongTitle" placeholder="Bohemian Rhapsody" class="input-field w-full p-3 rounded-lg" required>
             </div>
 
             <div>
-                <label for="modalArtistName" class="block text-sm font-medium mb-1">Artist Name</label>
-                <input type="text" id="modalArtistName" placeholder="Queen" class="input-field w-full p-3 rounded-lg">
+                <label for="modalArtistName" class="block text-sm font-medium mb-1">Artist Name <span class="text-red-500">*</span>
+                </label>
+                <input type="text" id="modalArtistName" placeholder="Queen" class="input-field w-full p-3 rounded-lg"required>
             </div>
 
-            <div id="modalError" class="text-red-500 text-sm hidden">Please enter either a song title or an artist name.</div>
+            <div id="modalError" class="text-red-600 text-sm font-medium hidden bg-red-50 p-3 rounded-lg border border-red-200"></div>
 
             <div class="flex justify-end space-x-4 pt-4">
-                <button onclick="closeSongModal()" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg font-semibold hover:bg-gray-300">
+                <button onclick="closeSongModal()" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg font-semibold hover:bg-gray-300 transition duration-150">
                     Cancel
                 </button>
-                <button onclick="addSongFromModal()" class="accent-button px-4 py-2 rounded-lg font-bold text-white shadow-md">
-                    Add to List
+                <button onclick="addSongFromModal()" class="accent-button px-4 py-2 rounded-lg font-bold text-white shadow-md flex items-center">
+                    <i class="fas fa-plus mr-2"></i> Add to Profile
                 </button>
             </div>
         </div>
@@ -361,25 +369,100 @@
             SONG_MODAL.classList.add('hidden');
         }
 
-        function addSongFromModal() {
+        async function addSongFromModal() {
             const title = MODAL_TITLE.value.trim();
             const artist = MODAL_ARTIST.value.trim();
-
-            if (!title && !artist) {
-                MODAL_ERROR.textContent = "Please enter either a song title or an artist name.";
+            //make sure that both fields are filled
+            if(!title || !artist){
+                MODAL_ERROR.textContent = "Please enter both song title and artist name";
                 MODAL_ERROR.classList.remove('hidden');
                 return;
             }
 
-            likedSongsArray.push({ title: title || 'N/A', artist: artist || 'N/A' });
-            renderCurrentSongs();
-            closeSongModal();
+            const addButton = document.querySelector('#songModal button[onclick*="addSongFromModal"]');
+            const originalText = addButton.innerHTML;
+            addButton.disabled = true;
+            addButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Validating with Spotify...';
+    
+            try{
+                //Calls the backend
+                const response = await fetch('/api/profile/songs', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                    title: title,
+                    artist: artist
+                    })
+                });
+                const result = await response.json();
+
+                //Error handling
+                if(!response.ok){
+                    if(response.status === 404){
+                        //Song not found
+                        MODAL_ERROR.textContent = result.error;
+                    }else if(response.status === 403){
+                        //Duplicate song
+                        MODAL_ERROR.textContent = result.error;
+                    }else{
+                        MODAL_ERROR.textContent = result.error || 'Failed to add song';
+                    }
+                    MODAL_ERROR.classList.remove('hidden');
+                    throw new Error(result.error);
+                }
+
+                //Add song to song array
+                likedSongsArray.push({title: result.song.title, artist: result.song.artist});
+                renderCurrentSongs();
+                closeSongModal();
+                displayMessage(`"${result.song.title}" by ${result.song.artist} added and verified!`, false);
+            }catch(error){
+                console.error('Error adding song:', error);
+                displayMessage(error.message || 'Failed to add song', true);
+            }finally{
+                //enable button
+                addButton.disabled = false;
+                addButton.innerHTML = originalText;
+            }
         }
 
-        function removeSong(index) {
-            likedSongsArray.splice(index, 1);
-            renderCurrentSongs();
+        async function removeSong(index) {
+            const song = likedSongsArray[index];
+            //Comfimration of removal
+            if(!confirm(`Remove "${song.title}" by ${song.artist}?`)){
+                return;
+            }
+    
+            try{
+                //Call the backend to remove song
+                const response = await fetch('/api/profile/songs', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                 },
+                    body: JSON.stringify({
+                    title: song.title,
+                    artist: song.artist
+                    })
+                });
+                const result = await response.json();
+                if(!response.ok){
+                    throw new Error(result.error || 'Failed to remove song');
+                }
+
+                //Remove song from array
+                likedSongsArray.splice(index, 1);
+                renderCurrentSongs();
+                displayMessage('Song removed successfully!', false);
+
+            }catch(error){
+                console.error('Error removing song:', error);
+                displayMessage(error.message, true);
+            }
         }
+
 
         function renderCurrentSongs() {
             CURRENT_SONGS_DISPLAY.innerHTML = '';
@@ -486,125 +569,76 @@
         async function loadProfile() {
             displayMessage("Loading profile data...", false);
             try {
-                const response = await fetch('/api/profile');
-                
-                if (response.status === 401) {
-                    window.location.href = '/login'; 
-                    return;
-                }
+              const res = await fetch('/api/profile');
+              if (!res.ok) throw new Error(`HTTP ${res.status}`);
+              const data = await res.json();
 
-                if (!response.ok) {
-                    throw new Error(`Server returned status: ${response.status}`);
-                }
+              USER_ID_DISPLAY.textContent = data.id || 'N/A';
+              document.getElementById('name').value = data.name || '';
+              // Convert DOB to YYYY-MM-DD format for the <input type="date">
+              const dobValue = data.dob
+                ? new Date(data.dob).toISOString().split('T')[0]
+                : '';
+              document.getElementById('dob').value = dobValue;
 
-                const data = await response.json();
-                
-                if (data.error) {
-                    throw new Error(data.error);
-                }
+              document.getElementById('username').value = data.username || '';
+              //document.getElementById('dob').value = data.dob || '';
+              document.getElementById('bio').value = data.bio || '';
+              document.getElementById('location').value = data.location || '';
+              document.getElementById('gender').value = data.gender || '';
+              document.getElementById('email').value = data.email || '';
+              document.getElementById('phoneNumber').value = data.phonenumber || '';
 
-                document.getElementById('userIdDisplay').textContent = data.id || 'N/A';
-                document.getElementById('name').value = data.name || '';
-                
-                const dobValue = data.dob ? new Date(data.dob).toISOString().split('T')[0] : '';
-                document.getElementById('dob').value = dobValue;
-                
-                document.getElementById('username').value = data.username || '';
-                document.getElementById('bio').value = data.bio || '';
-                document.getElementById('location').value = data.location || '';
-                document.getElementById('gender').value = data.gender || '';
-                
-                // NEW: Load Contact Info
-                document.getElementById('email').value = data.email || '';
-                document.getElementById('phoneNumber').value = data.phoneNumber || '';
-                
-                // Note: Hobbies field removed from load logic
-                // HOBBIES_INPUT.value = data.hobbies || '';
-                
-                // NEW: Hydrate the internal songs array from the DB string
-                likedSongsArray = hydrateSongsArray(data.liked_songs);
+              likedSongsArray = data.liked_songs ? data.liked_songs.split(',').map(s => {
+                const parts = s.split(' by ');
+                return { title: parts[0].trim(), artist: (parts[1] || 'Unknown').trim() };
+              }) : [];
+              renderCurrentSongs();
 
-                // Removed updateTagDisplays(); 
-                renderCurrentSongs(); // Updates the new song list display
+              displayMessage("Profile loaded!", false);
 
-                displayMessage("Profile data loaded successfully!", false);
-
-            } catch (error) {
-                console.error("Error loading profile:", error);
-                displayMessage(`Error loading profile: ${error.message}. Please log in.`, true);
-                document.getElementById('userIdDisplay').textContent = 'Error';
+            } catch (e) {
+              console.error(e);
+              displayMessage("Error loading profile: " + e.message, true);
+              USER_ID_DISPLAY.textContent = 'Error';
             }
-        }
+          }
+
 
         // --- Save Functionality ---
         async function saveProfile() {
             SAVE_BUTTON.disabled = true;
             SAVE_BUTTON.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Saving...';
 
-            const name = document.getElementById('name').value.trim();
-            const dob = document.getElementById('dob').value;
-            const username = document.getElementById('username').value.trim();
-            const bio = document.getElementById('bio').value.trim();
-            const location = document.getElementById('location').value.trim();
-            const gender = document.getElementById('gender').value;
-            
-            // NEW: Get Contact Info
-            const email = document.getElementById('email').value.trim();
-            const phoneNumber = document.getElementById('phoneNumber').value.trim();
-            // Removed: const hobbies = HOBBIES_INPUT.value.trim();
-
-            
-            // NEW: Convert the internal array of objects into the comma-separated string required by the API
-            // The format is "Title by Artist, Title 2 by Artist 2"
-            const liked_songs = likedSongsArray
-                .map(song => `${song.title} by ${song.artist}`)
-                .join(', ');
-
-            if (!name || !username || !dob) {
-                displayMessage("Name, Username, and DOB are required fields.", true);
-                SAVE_BUTTON.disabled = false;
-                SAVE_BUTTON.innerHTML = '<i class="fas fa-save mr-2"></i> Save Profile';
-                return;
-            }
-
             const profileData = {
-                name,
-                username,
-                dob,
-                bio,
-                location,
-                gender,
-                email, // NEW
-                phoneNumber, // NEW
-                // Removed: hobbies,
-                liked_songs // This is the comma-separated string for the DB
+              name: document.getElementById('name').value.trim(),
+              username: document.getElementById('username').value.trim(),
+              dob: document.getElementById('dob').value,
+              bio: document.getElementById('bio').value.trim(),
+              location: document.getElementById('location').value.trim(),
+              gender: document.getElementById('gender').value,
+              email: document.getElementById('email').value.trim(),
+              phoneNumber: document.getElementById('phoneNumber').value.trim(),
+              //liked_songs: likedSongsArray.map(s => `${s.title} by ${s.artist}`).join(', ')
             };
-            
+
             try {
-                const response = await fetch('/api/profile', {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(profileData)
-                });
-                
-                const result = await response.json();
-
-                if (!response.ok || result.error) {
-                    throw new Error(result.error || `Failed to save: ${response.statusText}`);
-                }
-
-                console.log("Profile successfully saved!", result);
-                displayMessage("Profile updated successfully!", false);
+              const res = await fetch('/api/profile', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(profileData)
+              });
+              const result = await res.json();
+              if (!res.ok || result.error) throw new Error(result.error || res.statusText);
+              displayMessage("Profile saved successfully!", false);
             } catch (e) {
-                console.error("Error saving profile: ", e);
-                displayMessage("Error saving profile: " + e.message, true);
+              console.error(e);
+              displayMessage("Error saving profile: " + e.message, true);
             } finally {
-                SAVE_BUTTON.disabled = false;
-                SAVE_BUTTON.innerHTML = '<i class="fas fa-save mr-2"></i> Save Profile';
+              SAVE_BUTTON.disabled = false;
+              SAVE_BUTTON.innerHTML = '<i class="fas fa-save mr-2"></i> Save Profile';
             }
-        }
+          }
 
         // --- Simulated Functionality (Change Password) ---
         function changePassword(event) {

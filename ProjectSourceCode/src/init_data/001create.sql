@@ -1,4 +1,4 @@
-CREATE TABLE users(
+CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY NOT NULL,
     username VARCHAR(50) UNIQUE NOT NULL,
     password VARCHAR(60) NOT NULL,
@@ -12,7 +12,14 @@ CREATE TABLE users(
     average_song_energy INTEGER,
     average_song_instrumentalness INTEGER,
     average_song_happiness INTEGER,
-    cluster_id INTEGER
+    cluster_id INTEGER,
+
+    -- New fields for profile editor
+    dob DATE,
+    bio TEXT,
+    location VARCHAR(100),
+    phonenumber VARCHAR(20),
+    liked_songs TEXT
 );
 
 CREATE TABLE songs(
