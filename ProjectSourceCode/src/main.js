@@ -26,13 +26,20 @@ app.use('/html', express.static(path.join(__dirname, 'views', 'pages', 'html')))
 // --- END NEW ADDITION ---
 
 // database configuration
-const dbConfig = {
-  host: process.env.POSTGRES_HOST || 'db', // the database server
-  port: process.env.POSTGRES_PORT || 5432, // the database port
-  database: process.env.POSTGRES_DB, // the database name
-  user: process.env.POSTGRES_USER, // the user account to connect with
-  password: process.env.POSTGRES_PASSWORD, // the password of the user account
-};
+const dbConfig = process.env.DATABASE_URL
+  ? {
+    connectionString: process.env.DATABASE_URL,
+    ssl: {
+      rejectUnauthorized: false
+    }
+  }
+  : {
+    host: process.env.POSTGRES_HOST || 'db', // the database server
+    port: process.env.POSTGRES_PORT || 5432, // the database port
+    database: process.env.POSTGRES_DB, // the database name
+    user: process.env.POSTGRES_USER, // the user account to connect with
+    password: process.env.POSTGRES_PASSWORD, // the password of the user account
+  };
 
 const db = pgp(dbConfig);
 
@@ -1197,7 +1204,7 @@ app.post('/api/match/rate', async (req, res) => {
 });
 
 // Start the server
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 const HOST = '0.0.0.0'; // Bind to all interfaces so it's accessible from outside the container
 const server = app.listen(PORT, HOST, async () => {
   console.log(`Server is running on http://${HOST}:${PORT}`);
