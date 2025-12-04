@@ -656,20 +656,7 @@ app.put('/api/profile', async (req, res) => {
   try {
     // Update all relevant fields
     const query = 
-    `UPDATE users
-      SET
-        username = $1,
-        name = $2,
-        dob = $3,
-        bio = $4,
-        location = $5,
-        gender = $6,
-        email = $7,
-        phonenumber = $8,
-        liked_songs = $9
-      WHERE id = $10
-      RETURNING *;
-    `;
+    `UPDATE users SET username = $1, name = $2, dob = $3, bio = $4, location = $5, gender = $6, email = $7, phonenumber = $8, liked_songs = $9 WHERE id = $10 RETURNING *;`;
 
     const updatedUser = await db.one(query, [
       username.trim(),
@@ -824,8 +811,14 @@ app.delete('/api/profile/songs', async (req, res) => {
   try {
     // Find the song
     const song = await db.oneOrNone(
-      'SELECT id FROM songs WHERE LOWER(title) = LOWER($1) AND LOWER(artist) = LOWER($2)',
-      [title.trim(), artist.trim()]
+      `SELECT s.id 
+     FROM songs s
+     JOIN users_to_songs uts ON s.id = uts.song_id
+     WHERE uts.user_id = $1 
+       AND LOWER(s.title) = LOWER($2) 
+       AND LOWER(s.artist) = LOWER($3)
+     LIMIT 1`,
+    [userId, title.trim(), artist.trim()]
     );
     
     if (!song) {
@@ -1075,7 +1068,7 @@ app.get('/api/match/next', async (req, res) => {
     
     // Step 1: Try to get users with the same cluster_id first
     let availableUsers = await db.any(
-  `SELECT u.id, u.username, u.name, u.age, u.gender, u.profile_picture_url, u.email, u.cluster_id,
+  `SELECT u.id, u.username, u.name, u.age, u.gender, u.profile_picture_url, u.email, u.cluster_id, u.bio, u.location,
          u.average_song_acousticness, u.average_song_danceability, u.average_song_energy, u.average_song_instrumentalness, u.average_song_happiness
    FROM users u
    WHERE u.cluster_id = $1
@@ -1101,7 +1094,7 @@ app.get('/api/match/next', async (req, res) => {
     if (availableUsers.length === 0) {
       isSameCluster = false;
       availableUsers = await db.any(
-  `SELECT u.id, u.username, u.name, u.age, u.gender, u.profile_picture_url, u.email, u.cluster_id,
+  `SELECT u.id, u.username, u.name, u.age, u.gender, u.profile_picture_url, u.email, u.cluster_id, u.bio, u.location,
          u.average_song_acousticness, u.average_song_danceability, u.average_song_energy, u.average_song_instrumentalness, u.average_song_happiness
    FROM users u
    WHERE u.cluster_id != $1
@@ -1179,7 +1172,7 @@ app.get('/api/match/next', async (req, res) => {
       name: displayName,
       age: user.age || '?',
       location: user.location || 'Location not set',
-      bio: `Hey! I'm ${displayNameForBio}. Music connects us! 🎵`,
+      bio: user.bio || `Hey! I'm ${displayNameForBio}. Music connects us! 🎵`,
       photoUrl: user.profile_picture_url || null,
       matchScore: matchScore,
       hobbies: [], // Empty array for now since not stored in DB
