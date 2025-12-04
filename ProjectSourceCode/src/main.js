@@ -1040,6 +1040,10 @@ app.get('/api/match/next', async (req, res) => {
              OR (m.user2_id = $2 AND m.user1_id = u.id))
              AND (m.matched = true OR m.initiated_by_user_id = $2)
         )
+        AND NOT EXISTS (
+          SELECT 1 FROM dislikes d
+          WHERE d.user_id = $2 AND d.disliked_user_id = u.id
+        )
       ORDER BY u.id
       LIMIT 1
     `, [clusterId, loggedInUserId]);
@@ -1061,6 +1065,10 @@ app.get('/api/match/next', async (req, res) => {
           WHERE ((m.user1_id = $2 AND m.user2_id = u.id)
              OR (m.user2_id = $2 AND m.user1_id = u.id))
              AND (m.matched = true OR m.initiated_by_user_id = $2)
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM dislikes d
+          WHERE d.user_id = $2 AND d.disliked_user_id = u.id
         )
         ORDER BY u.id
         LIMIT 1
@@ -1166,11 +1174,29 @@ app.post('/api/match/rate', async (req, res) => {
       WHERE user1_id = $1 AND user2_id = $2
     `, [user1_id, user2_id]);
 
-    if (existingMatch) {
-      // Match already exists - check the current matched status
-      if (rating === 'like') {
-        // If matched is currently false, this is the second like - make it mutual!
-        // If matched is already true, both users already like each other - no change needed
+    if (rating === 'dislike') {
+      // Record the dislike action in the dislikes table
+      await db.none(`
+        INSERT INTO dislikes (user_id, disliked_user_id)
+        VALUES ($1, $2)
+        ON CONFLICT (user_id, disliked_user_id) DO NOTHING
+      `, [loggedInUserId, profileId]);
+      
+      // Remove the match record if it exists
+      if (existingMatch) {
+        await db.none(`
+          DELETE FROM matches 
+          WHERE user1_id = $1 AND user2_id = $2
+        `, [user1_id, user2_id]);
+      }
+    } else {
+      // LIKE LOGIC: Create or confirm match
+      
+      // Delete any previous dislike from this user, since they are now liking
+      await db.none('DELETE FROM dislikes WHERE user_id = $1 AND disliked_user_id = $2', [loggedInUserId, profileId]);
+      
+      if (existingMatch) {
+        // Match already exists (meaning other user liked first) - make it mutual!
         if (existingMatch.matched === false) {
           await db.none(`
             UPDATE matches 
@@ -1179,21 +1205,12 @@ app.post('/api/match/rate', async (req, res) => {
           `, [user1_id, user2_id]);
         }
       } else {
-        // Dislike - remove the match record entirely
-        await db.none(`
-          DELETE FROM matches 
-          WHERE user1_id = $1 AND user2_id = $2
-        `, [user1_id, user2_id]);
-      }
-    } else {
-      // No existing match - creating first like
-      if (rating === 'like') {
+        // No existing match - creating first like (the 'request' for myMatches)
         await db.none(`
           INSERT INTO matches (user1_id, user2_id, matched, initiated_by_user_id)
           VALUES ($1, $2, false, $3)
         `, [user1_id, user2_id, loggedInUserId]);
       }
-      // If it's a dislike and no match exists, nothing to do
     }
 
     res.json({ success: true, message: `User ${rating} recorded successfully` });
