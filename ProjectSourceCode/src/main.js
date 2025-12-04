@@ -1066,7 +1066,6 @@ app.get('/api/match/next', async (req, res) => {
       return res.status(204).json({ message: "No more profiles available. Check back later!" });
     }
     
-    // ... (rest of the /api/match/next endpoint remains the same)
     const user = availableUsers[0];
     
     // Debug logging to see what data we're getting
