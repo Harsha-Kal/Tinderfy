@@ -1,401 +1,401 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tinderfy - Match</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <style>
-        body {
-            font-family: 'Arial', sans-serif;
-            background-color: #27ae60; 
-            color: #ecf0f1;
-            margin: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            padding: 20px;
-            box-sizing: border-box;
-            flex-direction: column; /* Ensure container and nav stack vertically */
-        }
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Tinderfy - Match</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+        <style>
+            body {
+                font-family: 'Arial', sans-serif;
+                background-color: #27ae60; 
+                color: #ecf0f1;
+                margin: 0;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                min-height: 100vh;
+                padding: 20px;
+                box-sizing: border-box;
+                flex-direction: column; /* Ensure container and nav stack vertically */
+            }
 
-        .container {
-            width: 100%;
-            max-width: 400px;
-            background: #2c3e50;
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-        }
+            .container {
+                width: 100%;
+                max-width: 400px;
+                background: #2c3e50;
+                border-radius: 20px;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+            }
 
-        /* User Card Styling */
-        .user-card {
-            position: relative;
-        }
+            /* User Card Styling */
+            .user-card {
+                position: relative;
+            }
 
-        .user-photo {
-            width: 100%;
-            height: 400px;
-            background-size: cover;
-            background-position: center;
-            background-image: url('data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'); 
-            border-top-left-radius: 20px;
-            border-top-right-radius: 20px;
-        }
+            .user-photo {
+                width: 100%;
+                height: 400px;
+                background-size: cover;
+                background-position: center;
+                background-image: url('data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'); 
+                border-top-left-radius: 20px;
+                border-top-right-radius: 20px;
+            }
 
-        .user-info {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            padding: 15px;
-            background: linear-gradient(to top, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0));
-        }
+            .user-info {
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                padding: 15px;
+                background: linear-gradient(to top, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0));
+            }
 
-        .user-info h2 {
-            margin: 0 0 5px 0;
-            font-size: 1.8em;
-            color: white;
-        }
+            .user-info h2 {
+                margin: 0 0 5px 0;
+                font-size: 1.8em;
+                color: white;
+            }
 
-        .user-info p {
-            margin: 0;
-            font-size: 1em;
-            color: #bdc3c7;
-        }
+            .user-info p {
+                margin: 0;
+                font-size: 1em;
+                color: #bdc3c7;
+            }
 
-        /* Music Match Score */
-        .match-score {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            background-color: #e67e22;
-            color: white;
-            padding: 8px 15px;
-            border-radius: 20px;
-            font-weight: bold;
-            font-size: 1.1em;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-        }
+            /* Music Match Score */
+            .match-score {
+                position: absolute;
+                top: 15px;
+                right: 15px;
+                background-color: #e67e22;
+                color: white;
+                padding: 8px 15px;
+                border-radius: 20px;
+                font-weight: bold;
+                font-size: 1.1em;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            }
 
-        /* Profile Details Section */
-        .profile-details {
-            padding: 20px;
-            color: #ecf0f1;
-        }
+            /* Profile Details Section */
+            .profile-details {
+                padding: 20px;
+                color: #ecf0f1;
+            }
 
-        .bio h3 {
-            color: #2ecc71;
-            margin-top: 0;
-            margin-bottom: 5px;
-            font-size: 1.2em;
-        }
+            .bio h3 {
+                color: #2ecc71;
+                margin-top: 0;
+                margin-bottom: 5px;
+                font-size: 1.2em;
+            }
 
-        .bio p {
-            line-height: 1.5;
-            margin-bottom: 20px;
-            font-size: 0.95em;
-        }
+            .bio p {
+                line-height: 1.5;
+                margin-bottom: 20px;
+                font-size: 0.95em;
+            }
 
-        .tags-section {
-            margin-bottom: 20px;
-        }
+            .tags-section {
+                margin-bottom: 20px;
+            }
 
-        .tags-section h4 {
-            color: #2ecc71;
-            margin-bottom: 10px;
-            font-size: 1.1em;
-            border-bottom: 2px solid #34495e;
-            padding-bottom: 5px;
-        }
+            .tags-section h4 {
+                color: #2ecc71;
+                margin-bottom: 10px;
+                font-size: 1.1em;
+                border-bottom: 2px solid #34495e;
+                padding-bottom: 5px;
+            }
 
-        .tags-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
+            .tags-container {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 8px;
+            }
 
-        .tag {
-            background-color: #34495e;
-            color: #ecf0f1;
-            padding: 6px 12px;
-            border-radius: 15px;
-            font-size: 0.85em;
-            font-weight: 500;
-        }
+            .tag {
+                background-color: #34495e;
+                color: #ecf0f1;
+                padding: 6px 12px;
+                border-radius: 15px;
+                font-size: 0.85em;
+                font-weight: 500;
+            }
 
-        /* Interactive Buttons */
-        .actions {
-            display: flex;
-            justify-content: space-around;
-            padding: 15px 0;
-            background: #34495e;
-        }
+            /* Interactive Buttons */
+            .actions {
+                display: flex;
+                justify-content: space-around;
+                padding: 15px 0;
+                background: #34495e;
+            }
 
-        .action-button {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            border: none;
-            cursor: pointer;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 24px;
-            transition: transform 0.2s, box-shadow 0.2s;
-            color: white;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
-        }
+            .action-button {
+                width: 60px;
+                height: 60px;
+                border-radius: 50%;
+                border: none;
+                cursor: pointer;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                font-size: 24px;
+                transition: transform 0.2s, box-shadow 0.2s;
+                color: white;
+                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+            }
 
-        .action-button:hover {
-            transform: scale(1.05);
-            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.6);
-        }
+            .action-button:hover {
+                transform: scale(1.05);
+                box-shadow: 0 6px 15px rgba(0, 0, 0, 0.6);
+            }
 
-        .dislike-button {
-            background-color: #e74c3c;
-        }
+            .dislike-button {
+                background-color: #e74c3c;
+            }
 
-        .like-button {
-            background-color: #2ecc71;
-        }
+            .like-button {
+                background-color: #2ecc71;
+            }
 
-        /* Icon Styling */
-        .icon {
-            line-height: 1;
-        }
+            /* Icon Styling */
+            .icon {
+                line-height: 1;
+            }
+            
+            /* Navigation Bar Style */
+            .nav-bar {
+                display: flex;
+                justify-content: space-between;
+                max-width: 400px;
+                width: 100%;
+                margin-bottom: 20px;
+            }
+
+            .nav-link {
+                background-color: #3498db; 
+                color: white;
+                padding: 10px 15px;
+                border-radius: 10px;
+                text-decoration: none;
+                font-weight: bold;
+                transition: background-color 0.2s;
+                flex-grow: 1;
+                text-align: center;
+                margin: 0 5px;
+            }
+
+            .nav-link:hover {
+                background-color: #2980b9;
+            }
+            
+            .nav-link.account-link { background-color: #e67e22; }
+            .nav-link.account-link:hover { background-color: #d35400; }
+            
+            .nav-link.matches-link { background-color: #2ecc71; }
+            .nav-link.matches-link:hover { background-color: #27ae60; }
+        </style>
+    </head>
+    <body>
         
-        /* Navigation Bar Style */
-        .nav-bar {
-            display: flex;
-            justify-content: space-between;
-            max-width: 400px;
-            width: 100%;
-            margin-bottom: 20px;
-        }
+        <div class="nav-bar">
+            <a href="/Account_info" class="nav-link account-link">
+                👤 Account
+            </a>
+            
+            <a href="/myMatches" class="nav-link matches-link">
+                💬 My Matches
+            </a>
+        </div>
 
-        .nav-link {
-            background-color: #3498db; 
-            color: white;
-            padding: 10px 15px;
-            border-radius: 10px;
-            text-decoration: none;
-            font-weight: bold;
-            transition: background-color 0.2s;
-            flex-grow: 1;
-            text-align: center;
-            margin: 0 5px;
-        }
+        <div class="container">
+            <div class="user-card">
+                <div class="user-photo">
+                    <div class="match-score">
+                        🎶 Loading...
+                    </div>
+                </div>
 
-        .nav-link:hover {
-            background-color: #2980b9;
-        }
-        
-        .nav-link.account-link { background-color: #e67e22; }
-        .nav-link.account-link:hover { background-color: #d35400; }
-        
-        .nav-link.matches-link { background-color: #2ecc71; }
-        .nav-link.matches-link:hover { background-color: #27ae60; }
-    </style>
-</head>
-<body>
-    
-    <div class="nav-bar">
-        <a href="/Account_info" class="nav-link account-link">
-            👤 Account
-        </a>
-        
-        <a href="/myMatches" class="nav-link matches-link">
-            💬 My Matches
-        </a>
-    </div>
-
-    <div class="container">
-        <div class="user-card">
-            <div class="user-photo">
-                <div class="match-score">
-                    🎶 Loading...
+                <div class="user-info">
+                    <h2>Loading...</h2>
+                    <p>📍 </p>
                 </div>
             </div>
 
-            <div class="user-info">
-                <h2>Loading...</h2>
-                <p>📍 </p>
+            <div class="profile-details">
+                <div class="bio">
+                    <h3>About Me</h3>
+                    <p>Loading profile data from the database...</p>
+                </div>
+
+                <div class="tags-section">
+                    <h4>🎧 Liked Songs</h4>
+                    <div class="tags-container" id="songs-tags">
+                        </div>
+                </div>
+            </div>
+
+            <div class="actions">
+                <button class="action-button dislike-button" onclick="rateUser('dislike')">
+                    <span class="icon">❌</span>
+                </button>
+                <button class="action-button like-button" onclick="rateUser('like')">
+                    <span class="icon">❤️</span>
+                </button>
             </div>
         </div>
 
-        <div class="profile-details">
-            <div class="bio">
-                <h3>About Me</h3>
-                <p>Loading profile data from the database...</p>
-            </div>
+        <script>
+            // Store the ID of the profile currently displayed for sending back to the server
+            let currentProfileId = null;
 
-            <div class="tags-section">
-                <h4>🎧 Liked Songs</h4>
-                <div class="tags-container" id="songs-tags">
-                    </div>
-            </div>
-        </div>
+            /**
+             * Renders the profile data obtained from the database onto the page.
+             * @param {Object} profile - The user data object retrieved from the API.
+             */
+            function renderProfile(profile) {
+                // Update the global ID tracker
+                currentProfileId = profile.id;
 
-        <div class="actions">
-            <button class="action-button dislike-button" onclick="rateUser('dislike')">
-                <span class="icon">❌</span>
-            </button>
-            <button class="action-button like-button" onclick="rateUser('like')">
-                <span class="icon">❤️</span>
-            </button>
-        </div>
-    </div>
+                // Update Card Info
+                document.querySelector('.user-photo').style.backgroundImage = `url('${profile.photoUrl}')`;
+                document.querySelector('.match-score').innerHTML = `🎶 ${profile.matchScore || '??'} Match`;
+                document.querySelector('.user-info h2').textContent = `${profile.name}, ${profile.age}`;
+                document.querySelector('.user-info p').textContent = `📍 ${profile.location}`;
 
-    <script>
-        // Store the ID of the profile currently displayed for sending back to the server
-        let currentProfileId = null;
+                // Update Bio
+                document.querySelector('.bio p').textContent = profile.bio;
 
-        /**
-         * Renders the profile data obtained from the database onto the page.
-         * @param {Object} profile - The user data object retrieved from the API.
-         */
-        function renderProfile(profile) {
-            // Update the global ID tracker
-            currentProfileId = profile.id;
+                // Render Liked Songs Tags
+                const songsContainer = document.getElementById('songs-tags');
+                // Ensure profile.likedSongs is an array on the client side
+                songsContainer.innerHTML = profile.likedSongs.map(tag => `<span class="tag">${tag}</span>`).join('');
+            }
 
-            // Update Card Info
-            document.querySelector('.user-photo').style.backgroundImage = `url('${profile.photoUrl}')`;
-            document.querySelector('.match-score').innerHTML = `🎶 ${profile.matchScore || '??'} Match`;
-            document.querySelector('.user-info h2').textContent = `${profile.name}, ${profile.age}`;
-            document.querySelector('.user-info p').textContent = `📍 ${profile.location}`;
+            /**
+             * Fetches the next profile data from the backend API.
+             */
+            async function fetchNextProfile() {
+                try {
+                    const response = await fetch('/api/match/next');
 
-            // Update Bio
-            document.querySelector('.bio p').textContent = profile.bio;
-
-            // Render Liked Songs Tags
-            const songsContainer = document.getElementById('songs-tags');
-            // Ensure profile.likedSongs is an array on the client side
-            songsContainer.innerHTML = profile.likedSongs.map(tag => `<span class="tag">${tag}</span>`).join('');
-        }
-
-        /**
-         * Fetches the next profile data from the backend API.
-         */
-        async function fetchNextProfile() {
-            try {
-                const response = await fetch('/api/match/next');
-
-                // Handle 204 No Content (no more profiles available)
-                if (response.status === 204) {
-                    const data = await response.json().catch(() => ({ message: "No more profiles available. Check back later!" }));
-                    showNoMoreUsersMessage(data.message || "No more profiles available. Check back later!");
-                    return;
-                }
-
-                if (!response.ok) {
-                    if (response.status === 401) {
-                        window.location.href = '/login';
+                    // Handle 204 No Content (no more profiles available)
+                    if (response.status === 204) {
+                        const data = await response.json().catch(() => ({ message: "No more profiles available. Check back later!" }));
+                        showNoMoreUsersMessage(data.message || "No more profiles available. Check back later!");
                         return;
                     }
-                    throw new Error(`HTTP error! status: ${response.status}`);
+
+                    if (!response.ok) {
+                        if (response.status === 401) {
+                            window.location.href = '/login';
+                            return;
+                        }
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    const profileData = await response.json();
+                    
+                    // Check if there's an error message in the response
+                    if (profileData.error) {
+                        throw new Error(profileData.error);
+                    }
+                    
+                    // Assuming profileData is structured like: 
+                    // { id: 1, name: "...", age: 25, location: "...", bio: "...", photoUrl: "...", matchScore: "85%", likedSongs: ["...", "..."] }
+                    renderProfile(profileData);
+                } catch (error) {
+                    console.error("Error fetching next profile:", error);
+                    
+                    // Check if it's a "no more users" type message
+                    if (error.message.includes("No more") || error.message.includes("Check back later") || error.message.includes("no more profiles")) {
+                        showNoMoreUsersMessage("No more profiles available. Check back later!");
+                    } else if (error.message.includes("complete your profile")) {
+                        showNoMoreUsersMessage("Please complete your profile to start matching.");
+                    } else {
+                    // Display an error message to the user
+                        document.querySelector('.user-info h2').textContent = "Error Loading Profiles";
+                        document.querySelector('.bio p').textContent = error.message || "An error occurred. Please try again.";
+                    // Disable buttons
+                    document.querySelector('.actions').style.pointerEvents = 'none';
                 }
-                
-                const profileData = await response.json();
-                
-                // Check if there's an error message in the response
-                if (profileData.error) {
-                    throw new Error(profileData.error);
                 }
+            }
+
+            /**
+             * Displays a message when no more users are available
+             */
+            function showNoMoreUsersMessage(message) {
+                // Clear current profile
+                currentProfileId = null;
                 
-                // Assuming profileData is structured like: 
-                // { id: 1, name: "...", age: 25, location: "...", bio: "...", photoUrl: "...", matchScore: "85%", likedSongs: ["...", "..."] }
-                renderProfile(profileData);
-            } catch (error) {
-                console.error("Error fetching next profile:", error);
+                // Update the card to show the message
+                document.querySelector('.user-photo').style.backgroundImage = 'url("data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7")';
+                document.querySelector('.match-score').innerHTML = '';
+                document.querySelector('.user-info h2').textContent = "No More Matches";
+                document.querySelector('.user-info p').textContent = '';
+                document.querySelector('.bio p').textContent = message;
                 
-                // Check if it's a "no more users" type message
-                if (error.message.includes("No more") || error.message.includes("Check back later") || error.message.includes("no more profiles")) {
-                    showNoMoreUsersMessage("No more profiles available. Check back later!");
-                } else if (error.message.includes("complete your profile")) {
-                    showNoMoreUsersMessage("Please complete your profile to start matching.");
-                } else {
-                // Display an error message to the user
-                    document.querySelector('.user-info h2').textContent = "Error Loading Profiles";
-                    document.querySelector('.bio p').textContent = error.message || "An error occurred. Please try again.";
+                // Clear songs
+                document.getElementById('songs-tags').innerHTML = '';
+                
                 // Disable buttons
                 document.querySelector('.actions').style.pointerEvents = 'none';
+                document.querySelector('.actions').style.opacity = '0.5';
             }
-            }
-        }
 
-        /**
-         * Displays a message when no more users are available
-         */
-        function showNoMoreUsersMessage(message) {
-            // Clear current profile
-            currentProfileId = null;
-            
-            // Update the card to show the message
-            document.querySelector('.user-photo').style.backgroundImage = 'url("data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7")';
-            document.querySelector('.match-score').innerHTML = '';
-            document.querySelector('.user-info h2').textContent = "No More Matches";
-            document.querySelector('.user-info p').textContent = '';
-            document.querySelector('.bio p').textContent = message;
-            
-            // Clear songs
-            document.getElementById('songs-tags').innerHTML = '';
-            
-            // Disable buttons
-            document.querySelector('.actions').style.pointerEvents = 'none';
-            document.querySelector('.actions').style.opacity = '0.5';
-        }
-
-        /**
-         * Sends the user's rating (like/dislike) back to the backend and fetches the next profile.
-         * * NOTE: 'like' action should be handled by the backend to save the profile to "requests" 
-         * in the user's match profile table.
-         * 'dislike' action should be handled by the backend to discard the profile.
-         * In both cases, we fetch the next profile immediately afterward.
-         * * @param {string} action - 'like' or 'dislike'.
-         */
-        async function rateUser(action) {
-            if (!currentProfileId) {
-                console.warn("No profile loaded to rate.");
-                return;
-            }
-            
-            const actionText = action === 'like' ? 'Liking and adding to requests...' : 'Disliking...';
-            console.log(actionText); // Optional: Provide quick feedback in console
-
-            try {
-                // Send the rating to the backend
-                const response = await fetch('/api/match/rate', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        profileId: currentProfileId,
-                        rating: action
-                    })
-                });
-
-                if (!response.ok) {
-                    throw new Error(`Failed to record rating: ${response.status}`);
+            /**
+             * Sends the user's rating (like/dislike) back to the backend and fetches the next profile.
+             * * NOTE: 'like' action should be handled by the backend to save the profile to "requests" 
+             * in the user's match profile table.
+             * 'dislike' action should be handled by the backend to discard the profile.
+             * In both cases, we fetch the next profile immediately afterward.
+             * * @param {string} action - 'like' or 'dislike'.
+             */
+            async function rateUser(action) {
+                if (!currentProfileId) {
+                    console.warn("No profile loaded to rate.");
+                    return;
                 }
+                
+                const actionText = action === 'like' ? 'Liking and adding to requests...' : 'Disliking...';
+                console.log(actionText); // Optional: Provide quick feedback in console
 
-                // If the rating is recorded successfully, fetch the next profile immediately
-                await fetchNextProfile();
+                try {
+                    // Send the rating to the backend
+                    const response = await fetch('/api/match/rate', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            profileId: currentProfileId,
+                            rating: action
+                        })
+                    });
 
-            } catch (error) {
-                console.error(`Error sending ${action} rating:`, error);
-                alert("Failed to record your action. Please try again.");
+                    if (!response.ok) {
+                        throw new Error(`Failed to record rating: ${response.status}`);
+                    }
+
+                    // If the rating is recorded successfully, fetch the next profile immediately
+                    await fetchNextProfile();
+
+                } catch (error) {
+                    console.error(`Error sending ${action} rating:`, error);
+                    alert("Failed to record your action. Please try again.");
+                }
             }
-        }
 
-        // Initialize the page by fetching the first profile
-        document.addEventListener('DOMContentLoaded', fetchNextProfile); 
-    </script>
-</body>
-</html>
+            // Initialize the page by fetching the first profile
+            document.addEventListener('DOMContentLoaded', fetchNextProfile); 
+        </script>
+    </body>
+    </html>

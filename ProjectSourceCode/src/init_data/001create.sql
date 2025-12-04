@@ -49,13 +49,34 @@ CREATE TABLE user_preferences(
     min_age INTEGER,
     max_age INTEGER,
     preferred_gender VARCHAR(20),
-    FOREIGN KEY (user_id) REFERENCES users(id)
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+-- UPDATED MATCHES TABLE FOR SWIPING LOGIC
 CREATE TABLE matches(
     id SERIAL PRIMARY KEY NOT NULL,
     user1_id INTEGER NOT NULL,
     user2_id INTEGER NOT NULL,
-    FOREIGN KEY (user1_id) REFERENCES users(id),
-    FOREIGN KEY (user2_id) REFERENCES users(id)
+    
+    matched BOOLEAN DEFAULT FALSE NOT NULL, 
+    initiated_by_user_id INTEGER, 
+
+    FOREIGN KEY (user1_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (user2_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (initiated_by_user_id) REFERENCES users(id) ON DELETE SET NULL,
+    
+    UNIQUE (user1_id, user2_id),
+    CONSTRAINT check_user_order CHECK (user1_id < user2_id)
+);
+
+-- NEW DISLIKES TABLE FOR PERMANENT EXCLUSION
+CREATE TABLE dislikes(
+    id SERIAL PRIMARY KEY NOT NULL,
+    user_id INTEGER NOT NULL, 
+    disliked_user_id INTEGER NOT NULL, 
+
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (disliked_user_id) REFERENCES users(id) ON DELETE CASCADE,
+    
+    UNIQUE (user_id, disliked_user_id)
 );
